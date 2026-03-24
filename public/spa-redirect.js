@@ -9,9 +9,11 @@
     // 提取可能存在的 q= 参数（原始 query string）
     var qMatch = search.match(/[?&]q=([^&]*)/);
     var query = qMatch ? '?' + qMatch[1].replace(/~and~/g, '&') : '';
+    // 去掉 pathname 末尾的 /，避免双斜杠
+    var base = l.pathname.replace(/\/$/, '');
     window.history.replaceState(
       null, null,
-      l.pathname + path + query + l.hash
+      base + path + query + l.hash
     );
   }
 }(window.location));
