@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Eye, AlertCircle, Trash2, Github, Loader2, CheckCircle, XCircle, ExternalLink, Image, Upload, X } from 'lucide-react';
+import { ArrowLeft, Save, Eye, AlertCircle, Trash2, Github, Loader2, CheckCircle, XCircle, ExternalLink, Image, Upload, X, MessageSquare } from 'lucide-react';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { MarkdownEditor } from '../components/MarkdownEditor';
 import { EditorSkeleton } from '../components/EditorSkeleton';
@@ -10,6 +10,7 @@ import { tags } from '../../data/tags';
 import { categories } from '../../data/categories';
 import type { Post } from '../../types';
 import { loadGitHubConfig, publishToGitHub, uploadImageToGitHub } from '../../services/githubService';
+import { getWeChatAccounts, publishToWeChat, type WeChatAccount } from '../../services/wechatService';
 
 export const PostEditor: React.FC = () => {
   const { isDark } = useDarkMode();
@@ -39,6 +40,24 @@ export const PostEditor: React.FC = () => {
   const [ghPublishing, setGhPublishing] = useState(false);
   const [ghResult, setGhResult] = useState<{ success: boolean; message: string; commitUrl?: string } | null>(null);
   const ghConfigured = !!loadGitHubConfig()?.token;
+
+  // 微信公众号状态
+  const [wechatAccounts, setWechatAccounts] = useState<WeChatAccount[]>([]);
+  const [selectedWechatAccount, setSelectedWechatAccount] = useState<string>('');
+  const [wechatPublishing, setWechatPublishing] = useState(false);
+  const [wechatResult, setWechatResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // 加载微信公众号账号列表
+  useEffect(() => {
+    const loadWechatAccounts = async () => {
+      const accounts = await getWeChatAccounts();
+      setWechatAccounts(accounts);
+      if (accounts.length > 0 && !selectedWechatAccount) {
+        setSelectedWechatAccount(accounts[0].name);
+      }
+    };
+    loadWechatAccounts();
+  }, []);
 
   useEffect(() => {
     // 检查是否有保存的草稿
@@ -201,6 +220,53 @@ export const PostEditor: React.FC = () => {
     );
   };
 
+  /** 同步到微信公众号 */
+  const handleSyncToWeChat = async () => {
+    if (!title.trim() || !summary.trim() || !content.trim()) {
+      setWechatResult({ success: false, message: '请先填写完整的标题、摘要和内容' });
+      return;
+    }
+
+    if (!selectedWechatAccount) {
+      setWechatResult({ success: false, message: '请先在设置中添加微信公众号账号' });
+      return;
+    }
+
+    // 先保存到本地
+    const thisPost: Post = {
+      id: isEditing ? id! : `post-${Date.now()}`,
+      title: title.trim(),
+      summary: summary.trim(),
+      content: content.trim(),
+      date: publishDate,
+      tags: selectedTags,
+      category: selectedCategory,
+      status: postStatus,
+      readTime: Math.ceil(content.split(/\s+/).length / 200),
+      relatedPostIds: relatedPostIds.length > 0 ? relatedPostIds : undefined,
+      coverImage: coverImage.trim() || undefined,
+    };
+
+    if (isEditing && id) {
+      updatePost(id, thisPost);
+    } else {
+      addPost(thisPost);
+    }
+
+    const postId = thisPost.id;
+    setWechatPublishing(true);
+    setWechatResult(null);
+
+    const result = await publishToWeChat(postId, selectedWechatAccount);
+
+    setWechatPublishing(false);
+    if (result.success) {
+      setWechatResult({ success: true, message: `已同步到「${selectedWechatAccount}」草稿箱，请前往微信公众号后台发布` });
+    } else {
+      setWechatResult({ success: false, message: result.error || '同步失败' });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -276,6 +342,48 @@ export const PostEditor: React.FC = () => {
               >
                 <Github className="w-5 h-5" />
                 配置 GitHub 发布
+              </button>
+            )}
+
+            {/* 微信公众号同步 */}
+            {wechatAccounts.length > 0 ? (
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedWechatAccount}
+                  onChange={(e) => setSelectedWechatAccount(e.target.value)}
+                  className={`px-3 py-2 rounded-lg border text-sm ${
+                    isDark
+                      ? 'bg-gray-800 border-gray-700 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  } focus:outline-none focus:ring-2 focus:ring-green-500`}
+                >
+                  {wechatAccounts.map(acc => (
+                    <option key={acc.name} value={acc.name}>{acc.name}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleSyncToWeChat}
+                  disabled={wechatPublishing}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                  {wechatPublishing
+                    ? <><Loader2 className="w-5 h-5 animate-spin" />同步中...</>
+                    : <><MessageSquare className="w-5 h-5" />同步到公众号</>
+                  }
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => navigate('/admin/settings')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 border border-dashed ${
+                  isDark
+                    ? 'border-gray-600 text-gray-500 hover:bg-gray-800'
+                    : 'border-gray-400 text-gray-400 hover:bg-gray-50'
+                }`}
+                title="前往设置配置微信公众号"
+              >
+                <MessageSquare className="w-5 h-5" />
+                配置公众号
               </button>
             )}
           </div>
@@ -700,7 +808,7 @@ export const PostEditor: React.FC = () => {
         </>
       )}
 
-      {/* 预览模态框 */}
+      {/* GitHub 发布结果提示 */}
       {ghResult && (
         <div className={`fixed bottom-6 right-6 z-50 max-w-sm w-full shadow-xl rounded-xl p-4 flex items-start gap-3 ${
           ghResult.success
@@ -732,6 +840,34 @@ export const PostEditor: React.FC = () => {
           </div>
           <button
             onClick={() => setGhResult(null)}
+            className="text-gray-400 hover:text-gray-600 shrink-0 text-lg leading-none"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* 微信公众号同步结果提示 */}
+      {wechatResult && (
+        <div className={`fixed bottom-6 left-6 z-50 max-w-sm w-full shadow-xl rounded-xl p-4 flex items-start gap-3 ${
+          wechatResult.success
+            ? 'bg-green-50 dark:bg-green-900/80 border border-green-200 dark:border-green-700'
+            : 'bg-red-50 dark:bg-red-900/80 border border-red-200 dark:border-red-700'
+        }`}>
+          {wechatResult.success
+            ? <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+            : <XCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+          }
+          <div className="flex-1 min-w-0">
+            <p className={`text-sm font-medium ${wechatResult.success ? 'text-green-800 dark:text-green-200' : 'text-red-700 dark:text-red-300'}`}>
+              {wechatResult.success ? '同步成功！' : '同步失败'}
+            </p>
+            <p className={`text-xs mt-0.5 ${wechatResult.success ? 'text-green-700 dark:text-green-300' : 'text-red-600 dark:text-red-400'}`}>
+              {wechatResult.message}
+            </p>
+          </div>
+          <button
+            onClick={() => setWechatResult(null)}
             className="text-gray-400 hover:text-gray-600 shrink-0 text-lg leading-none"
           >
             ×
