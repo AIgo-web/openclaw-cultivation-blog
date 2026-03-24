@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -5,6 +6,40 @@ import { generateSafeId } from '../utils/toc';
 
 interface MarkdownRendererProps {
   content: string;
+}
+
+function CopyButton({ getText }: { getText: () => string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(getText());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback
+    }
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className="absolute top-2 right-2 px-2 py-1 rounded text-xs font-mono transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white select-none"
+      title="复制代码"
+    >
+      {copied ? '✓ 已复制' : '复制'}
+    </button>
+  );
+}
+
+function CodeBlock({ children }: { children: React.ReactNode }) {
+  const preRef = React.useRef<HTMLPreElement>(null);
+  return (
+    <div className="relative group my-4">
+      <pre ref={preRef} className="bg-gray-900 dark:bg-gray-950 rounded-xl p-4 overflow-x-auto text-sm">
+        {children}
+      </pre>
+      <CopyButton getText={() => preRef.current?.innerText || ''} />
+    </div>
+  );
 }
 
 export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
@@ -77,11 +112,7 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
             }
             return <code className={className}>{children}</code>;
           },
-          pre: ({ children }) => (
-            <pre className="bg-gray-900 dark:bg-gray-950 rounded-xl p-4 overflow-x-auto my-4 text-sm">
-              {children}
-            </pre>
-          ),
+          pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
           table: ({ children }) => (
             <div className="overflow-x-auto my-4">
               <table className="w-full border-collapse text-sm">

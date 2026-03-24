@@ -5,9 +5,12 @@ import { tags, getTagColor } from '../data/tags';
 import { categories } from '../data/categories';
 import { Link } from 'react-router-dom';
 
+const PAGE_SIZE = 6;
+
 export default function HomePage() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const { posts } = usePosts();
 
   const filteredPosts = posts.filter(p => {
@@ -16,6 +19,19 @@ export default function HomePage() {
     const matchCategory = !selectedCategory || p.category === selectedCategory;
     return isPublished && matchTag && matchCategory;
   });
+
+  const visiblePosts = filteredPosts.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredPosts.length;
+
+  // 切换筛选时重置显示数量
+  const handleTagChange = (tag: string | null) => {
+    setSelectedTag(tag);
+    setVisibleCount(PAGE_SIZE);
+  };
+  const handleCategoryChange = (cat: string | null) => {
+    setSelectedCategory(cat);
+    setVisibleCount(PAGE_SIZE);
+  };
 
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
@@ -52,7 +68,7 @@ export default function HomePage() {
         <div className="flex flex-wrap gap-2 items-center">
           <span className="text-sm text-gray-500 dark:text-gray-400 mr-1">分类：</span>
           <button
-            onClick={() => setSelectedCategory(null)}
+            onClick={() => handleCategoryChange(null)}
             className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
               selectedCategory === null
                 ? 'bg-lobster-500 text-white shadow-md'
@@ -64,7 +80,7 @@ export default function HomePage() {
           {categories.map(cat => (
             <button
               key={cat.id}
-              onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
+              onClick={() => handleCategoryChange(selectedCategory === cat.id ? null : cat.id)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                 selectedCategory === cat.id
                   ? 'ring-2 ring-offset-1 ring-lobster-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
@@ -82,7 +98,7 @@ export default function HomePage() {
         <div className="flex flex-wrap gap-2 items-center">
           <span className="text-sm text-gray-500 dark:text-gray-400 mr-1">筛选：</span>
           <button
-            onClick={() => setSelectedTag(null)}
+            onClick={() => handleTagChange(null)}
             className={`tag-badge transition-all ${
               selectedTag === null
                 ? 'bg-lobster-500 text-white shadow-md'
@@ -94,7 +110,7 @@ export default function HomePage() {
           {tags.slice(0, 8).map(tag => (
             <button
               key={tag.name}
-              onClick={() => setSelectedTag(selectedTag === tag.name ? null : tag.name)}
+              onClick={() => handleTagChange(selectedTag === tag.name ? null : tag.name)}
               className={`tag-badge ${
                 selectedTag === tag.name
                   ? 'ring-2 ring-lobster-400 ' + getTagColor(tag.name)
@@ -127,12 +143,24 @@ export default function HomePage() {
           </h2>
         </div>
 
-        {filteredPosts.length > 0 ? (
-          <div className="grid gap-5">
-            {filteredPosts.map(post => (
-              <PostCard key={post.id} post={post} />
-            ))}
-          </div>
+        {visiblePosts.length > 0 ? (
+          <>
+            <div className="grid gap-5">
+              {visiblePosts.map(post => (
+                <PostCard key={post.id} post={post} />
+              ))}
+            </div>
+            {hasMore && (
+              <div className="text-center mt-8">
+                <button
+                  onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+                  className="px-6 py-2.5 rounded-full border border-lobster-300 text-lobster-500 hover:bg-lobster-50 dark:border-lobster-700 dark:text-lobster-400 dark:hover:bg-lobster-900/20 text-sm font-medium transition-colors"
+                >
+                  加载更多 ({filteredPosts.length - visibleCount} 篇)
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-16">
             <span className="text-4xl">🦞</span>

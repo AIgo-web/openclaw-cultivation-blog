@@ -1,18 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Search, CheckSquare, Square, Minus, Download } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, CheckSquare, Square, Minus, Download, Upload, ArrowUpDown } from 'lucide-react';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { usePosts } from '../../contexts/PostsContext';
 import { exportPosts } from '../../utils/exportPost';
+import type { Post } from '../../types';
+
+type SortKey = 'date-desc' | 'date-asc' | 'status';
 
 export const PostList: React.FC = () => {
   const { isDark } = useDarkMode();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const { posts, deletePost } = usePosts();
+  const [sortKey, setSortKey] = useState<SortKey>('date-desc');
+  const importRef = useRef<HTMLInputElement>(null);
+  const { posts, deletePost, addPost } = usePosts();
 
-  const filteredPosts = posts.filter(post =>
+  const sortedPosts = [...posts].sort((a, b) => {
+    if (sortKey === 'date-asc') return a.date.localeCompare(b.date);
+    if (sortKey === 'date-desc') return b.date.localeCompare(a.date);
+    if (sortKey === 'status') {
+      const sa = (!a.status || a.status === 'published') ? 0 : 1;
+      const sb = (!b.status || b.status === 'published') ? 0 : 1;
+      return sa - sb;
+    }
+    return 0;
+  });
+
+  const filteredPosts = sortedPosts.filter(post =>
     post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     post.summary.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -59,8 +75,89 @@ export const PostList: React.FC = () => {
     exportPosts(toExport);
   };
 
+  /** 解析 Markdown 文件，提取 frontmatter 或使用文件名 */
+  const parseMarkdownFile = (filename: string, content: string): Omit<Post, 'id'> => {
+    let title = filename.replace(/\.md$/i, '');
+    let summary = '';
+    let body = content;
+    let tags: string[] = [];
+    let category = 'tech';
+    let date = new Date().toISOString().split('T')[0];
+
+    // 解析 frontmatter（---...---）
+    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
+    if (fmMatch) {
+      const fm = fmMatch[1];
+      body = fmMatch[2];
+
+      const titleMatch = fm.match(/^title:\s*["']?(.+?)["']?\s*$/m);
+      if (titleMatch) title = titleMatch[1].trim();
+
+      const summaryMatch = fm.match(/^(?:summary|description|excerpt):\s*["']?(.+?)["']?\s*$/m);
+      if (summaryMatch) summary = summaryMatch[1].trim();
+
+      const dateMatch = fm.match(/^date:\s*["']?(\d{4}-\d{2}-\d{2})["']?\s*$/m);
+      if (dateMatch) date = dateMatch[1];
+
+      const tagsMatch = fm.match(/^tags:\s*\[(.+?)\]\s*$/m);
+      if (tagsMatch) {
+        tags = tagsMatch[1].split(',').map(t => t.trim().replace(/["']/g, '')).filter(Boolean);
+      }
+
+      const catMatch = fm.match(/^category:\s*["']?(.+?)["']?\s*$/m);
+      if (catMatch) category = catMatch[1].trim();
+    }
+
+    // 如果没有摘要，取正文前 150 字
+    if (!summary) {
+      summary = body.replace(/[#*`\[\]>]/g, '').slice(0, 150).trim();
+    }
+
+    return {
+      title,
+      summary,
+      content: body.trim(),
+      tags,
+      category,
+      date,
+      status: 'draft',
+      readTime: Math.ceil(body.split(/\s+/).length / 200),
+    };
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    let imported = 0;
+    for (const file of files) {
+      if (!file.name.endsWith('.md') && !file.name.endsWith('.markdown')) continue;
+      const text = await file.text();
+      const postData = parseMarkdownFile(file.name, text);
+      addPost({ id: `post-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, ...postData });
+      imported++;
+    }
+
+    e.target.value = '';
+    if (imported > 0) {
+      alert(`成功导入 ${imported} 篇文章（已设为草稿，请检查后发布）`);
+    } else {
+      alert('未找到有效的 .md 文件');
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* hidden file input for import */}
+      <input
+        ref={importRef}
+        type="file"
+        accept=".md,.markdown"
+        multiple
+        className="hidden"
+        onChange={handleImport}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -75,22 +172,35 @@ export const PostList: React.FC = () => {
             管理博客文章内容
           </p>
         </div>
-        <button
-          onClick={() => navigate('/admin/posts/new')}
-          className="px-4 py-2 bg-lobster-500 hover:bg-lobster-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          新建文章
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => importRef.current?.click()}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 border ${
+              isDark
+                ? 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <Upload className="w-5 h-5" />
+            导入 .md
+          </button>
+          <button
+            onClick={() => navigate('/admin/posts/new')}
+            className="px-4 py-2 bg-lobster-500 hover:bg-lobster-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            新建文章
+          </button>
+        </div>
       </div>
 
-      {/* Search */}
+      {/* Search + Sort */}
       <div className={`
-        p-4 rounded-lg
+        p-4 rounded-lg flex gap-3 items-center
         ${isDark ? 'bg-gray-900' : 'bg-white'}
         border border-gray-200 dark:border-gray-800
       `}>
-        <div className="relative">
+        <div className="relative flex-1">
           <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${
             isDark ? 'text-gray-500' : 'text-gray-400'
           }`} />
@@ -107,6 +217,22 @@ export const PostList: React.FC = () => {
               } focus:outline-none focus:ring-2 focus:ring-lobster-500
             `}
           />
+        </div>
+        <div className={`flex items-center gap-2 shrink-0`}>
+          <ArrowUpDown className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+          <select
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value as SortKey)}
+            className={`px-3 py-2 rounded-lg border text-sm ${
+              isDark
+                ? 'bg-gray-800 border-gray-700 text-gray-300'
+                : 'bg-white border-gray-300 text-gray-700'
+            } focus:outline-none focus:ring-2 focus:ring-lobster-500`}
+          >
+            <option value="date-desc">最新优先</option>
+            <option value="date-asc">最早优先</option>
+            <option value="status">已发布优先</option>
+          </select>
         </div>
       </div>
 

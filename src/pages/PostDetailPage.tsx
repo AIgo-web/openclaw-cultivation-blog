@@ -30,6 +30,55 @@ export default function PostDetailPage() {
     if (id) incrementViews(id);
   }, [id, incrementViews]);
 
+  // SEO: 动态设置 title 和 meta description
+  useEffect(() => {
+    if (!post) return;
+    const prevTitle = document.title;
+    document.title = `${post.title} - OpenClaw 龙虾养成计划`;
+
+    // description
+    let descEl = document.querySelector<HTMLMetaElement>('meta[name="description"]');
+    if (!descEl) {
+      descEl = document.createElement('meta');
+      descEl.name = 'description';
+      document.head.appendChild(descEl);
+    }
+    const prevDesc = descEl.content;
+    descEl.content = post.summary.slice(0, 160);
+
+    // og:title
+    let ogTitleEl = document.querySelector<HTMLMetaElement>('meta[property="og:title"]');
+    if (!ogTitleEl) {
+      ogTitleEl = document.createElement('meta');
+      ogTitleEl.setAttribute('property', 'og:title');
+      document.head.appendChild(ogTitleEl);
+    }
+    ogTitleEl.content = post.title;
+
+    // og:description
+    let ogDescEl = document.querySelector<HTMLMetaElement>('meta[property="og:description"]');
+    if (!ogDescEl) {
+      ogDescEl = document.createElement('meta');
+      ogDescEl.setAttribute('property', 'og:description');
+      document.head.appendChild(ogDescEl);
+    }
+    ogDescEl.content = post.summary.slice(0, 160);
+
+    // og:image
+    let ogImgEl = document.querySelector<HTMLMetaElement>('meta[property="og:image"]');
+    if (!ogImgEl) {
+      ogImgEl = document.createElement('meta');
+      ogImgEl.setAttribute('property', 'og:image');
+      document.head.appendChild(ogImgEl);
+    }
+    if (post.coverImage) ogImgEl.content = post.coverImage;
+
+    return () => {
+      document.title = prevTitle;
+      if (descEl) descEl.content = prevDesc;
+    };
+  }, [post]);
+
   // ✅ 滚动监听 - 同步 TOC 高亮 + 阅读进度
   useEffect(() => {
     const handleScroll = () => {
@@ -96,8 +145,18 @@ export default function PostDetailPage() {
 
         {/* Article header */}
         <header className="mb-8">
-          {/* Cover gradient bar */}
-          <div className={`h-1.5 rounded-full bg-gradient-to-r ${post.coverColor || 'from-lobster-400 to-orange-400'} mb-5`} />
+          {/* Cover: image or gradient bar */}
+          {post.coverImage ? (
+            <div className="h-56 sm:h-72 rounded-xl overflow-hidden mb-5">
+              <img
+                src={post.coverImage}
+                alt={post.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className={`h-1.5 rounded-full bg-gradient-to-r ${post.coverColor || 'from-lobster-400 to-orange-400'} mb-5`} />
+          )}
 
           {/* Tags + Category */}
           <div className="flex flex-wrap gap-2 mb-4">

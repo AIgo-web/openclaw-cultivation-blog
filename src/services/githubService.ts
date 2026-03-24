@@ -97,6 +97,58 @@ async function getFileSha(config: GitHubConfig, path: string): Promise<string | 
 }
 
 /**
+ * 上传图片到 GitHub 仓库 images/ 目录，返回 raw 访问 URL
+ */
+export async function uploadImageToGitHub(
+  config: GitHubConfig,
+  file: File
+): Promise<{ success: boolean; url?: string; message: string }> {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const uint8 = new Uint8Array(arrayBuffer);
+    let binary = '';
+    for (let i = 0; i < uint8.length; i++) {
+      binary += String.fromCharCode(uint8[i]);
+    }
+    const base64 = btoa(binary);
+
+    const ext = file.name.split('.').pop() || 'jpg';
+    const filename = `images/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+    const sha = await getFileSha(config, filename);
+    const body: Record<string, unknown> = {
+      message: `upload: cover image ${filename}`,
+      content: base64,
+      branch: config.branch,
+    };
+    if (sha) body.sha = sha;
+
+    const resp = await fetch(
+      `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filename}`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${config.token}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      }
+    );
+
+    if (resp.ok) {
+      // 使用 jsdelivr CDN 加速访问
+      const cdnUrl = `https://cdn.jsdelivr.net/gh/${config.owner}/${config.repo}@${config.branch}/${filename}`;
+      return { success: true, url: cdnUrl, message: '图片上传成功' };
+    }
+    const err = await resp.json().catch(() => ({}));
+    return { success: false, message: `上传失败：${(err as { message?: string }).message || `HTTP ${resp.status}`}` };
+  } catch (e) {
+    return { success: false, message: `网络错误：${e instanceof Error ? e.message : '未知错误'}` };
+  }
+}
+
+/**
  * 推送文章数据到 GitHub，触发自动部署
  */
 export async function publishToGitHub(

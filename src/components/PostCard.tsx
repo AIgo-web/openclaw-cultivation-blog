@@ -17,8 +17,19 @@ export default function PostCard({ post }: PostCardProps) {
 
   return (
     <article className="card hover:shadow-lg hover:-translate-y-1 group overflow-hidden">
-      {/* Cover gradient */}
-      <div className={`h-2 bg-gradient-to-r ${post.coverColor || 'from-lobster-400 to-orange-400'}`} />
+      {/* Cover: image or gradient */}
+      {post.coverImage ? (
+        <div className="h-44 overflow-hidden">
+          <img
+            src={post.coverImage}
+            alt={post.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
+          />
+        </div>
+      ) : (
+        <div className={`h-2 bg-gradient-to-r ${post.coverColor || 'from-lobster-400 to-orange-400'}`} />
+      )}
 
       <div className="p-6">
         {/* Tags */}

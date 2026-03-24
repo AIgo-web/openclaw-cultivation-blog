@@ -7,6 +7,7 @@ export interface Post {
   date: string;
   readTime: number;
   coverColor?: string;
+  coverImage?: string;       // 封面图片 URL（优先于 coverColor 渐变）
   category?: string;
   status?: 'published' | 'draft';
   views?: number;

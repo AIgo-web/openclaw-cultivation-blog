@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Eye, AlertCircle, Trash2, Github, Loader2, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Save, Eye, AlertCircle, Trash2, Github, Loader2, CheckCircle, XCircle, ExternalLink, Image, Upload, X } from 'lucide-react';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { MarkdownEditor } from '../components/MarkdownEditor';
 import { EditorSkeleton } from '../components/EditorSkeleton';
@@ -9,7 +9,7 @@ import { usePosts } from '../../contexts/PostsContext';
 import { tags } from '../../data/tags';
 import { categories } from '../../data/categories';
 import type { Post } from '../../types';
-import { loadGitHubConfig, publishToGitHub } from '../../services/githubService';
+import { loadGitHubConfig, publishToGitHub, uploadImageToGitHub } from '../../services/githubService';
 
 export const PostEditor: React.FC = () => {
   const { isDark } = useDarkMode();
@@ -27,6 +27,10 @@ export const PostEditor: React.FC = () => {
   const [postStatus, setPostStatus] = useState<'published' | 'draft'>('published');
   const [publishDate, setPublishDate] = useState(new Date().toISOString().split('T')[0]);
   const [relatedPostIds, setRelatedPostIds] = useState<string[]>([]);
+  const [coverImage, setCoverImage] = useState('');
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageError, setImageError] = useState('');
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [hasDraft, setHasDraft] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditing);
   const [showPreview, setShowPreview] = useState(false);
@@ -54,6 +58,7 @@ export const PostEditor: React.FC = () => {
           setPostStatus(post.status || 'published');
           setPublishDate(post.date);
           setRelatedPostIds(post.relatedPostIds || []);
+          setCoverImage(post.coverImage || '');
         }
         setIsLoading(false);
       }, 300); // 300ms 加载动画
@@ -94,6 +99,7 @@ export const PostEditor: React.FC = () => {
       status: postStatus,
       readTime: Math.ceil(content.split(/\s+/).length / 200),
       relatedPostIds: relatedPostIds.length > 0 ? relatedPostIds : undefined,
+      coverImage: coverImage.trim() || undefined,
     };
 
     if (isEditing) {
@@ -137,6 +143,7 @@ export const PostEditor: React.FC = () => {
       status: postStatus,
       readTime: Math.ceil(content.split(/\s+/).length / 200),
       relatedPostIds: relatedPostIds.length > 0 ? relatedPostIds : undefined,
+      coverImage: coverImage.trim() || undefined,
     };
 
     // 先更新本地
@@ -166,6 +173,23 @@ export const PostEditor: React.FC = () => {
     if (result.success) {
       localStorage.removeItem('markdown-draft');
       setHasDraft(false);
+    }
+  };
+
+  const handleImageUpload = async (file: File) => {
+    const config = loadGitHubConfig();
+    if (!config?.token) {
+      setImageError('请先配置 GitHub Token 才能上传图片');
+      return;
+    }
+    setImageUploading(true);
+    setImageError('');
+    const result = await uploadImageToGitHub(config, file);
+    setImageUploading(false);
+    if (result.success && result.url) {
+      setCoverImage(result.url);
+    } else {
+      setImageError(result.message);
     }
   };
 
@@ -313,6 +337,88 @@ export const PostEditor: React.FC = () => {
               } focus:outline-none focus:ring-2 focus:ring-lobster-500
             `}
           />
+        </div>
+
+        {/* Cover Image */}
+        <div className={`
+          p-6 rounded-lg
+          ${isDark ? 'bg-gray-900' : 'bg-white'}
+          border border-gray-200 dark:border-gray-800
+        `}>
+          <label className={`block text-sm font-medium mb-3 ${
+            isDark ? 'text-gray-300' : 'text-gray-700'
+          }`}>
+            封面图片 <span className={`text-xs font-normal ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>（可选，无图则显示渐变色条）</span>
+          </label>
+          <div className="flex gap-3 items-start">
+            <input
+              type="text"
+              value={coverImage}
+              onChange={(e) => { setCoverImage(e.target.value); setImageError(''); }}
+              placeholder="输入图片 URL，或点右侧按钮上传到 GitHub..."
+              className={`
+                flex-1 px-4 py-2.5 rounded-lg border text-sm
+                ${isDark 
+                  ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500' 
+                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                } focus:outline-none focus:ring-2 focus:ring-lobster-500
+              `}
+            />
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImageUpload(file);
+                e.target.value = '';
+              }}
+            />
+            <button
+              onClick={() => imageInputRef.current?.click()}
+              disabled={imageUploading}
+              title="上传图片到 GitHub"
+              className={`px-3 py-2.5 rounded-lg border text-sm font-medium flex items-center gap-1.5 transition-colors shrink-0 ${
+                isDark
+                  ? 'border-gray-700 text-gray-300 hover:bg-gray-800 disabled:opacity-50'
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50'
+              }`}
+            >
+              {imageUploading
+                ? <><Loader2 className="w-4 h-4 animate-spin" />上传中...</>
+                : <><Upload className="w-4 h-4" />上传图片</>
+              }
+            </button>
+            {coverImage && (
+              <button
+                onClick={() => { setCoverImage(''); setImageError(''); }}
+                title="清除封面图"
+                className="p-2.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          {imageError && (
+            <p className="text-xs text-red-500 mt-2">{imageError}</p>
+          )}
+          {coverImage && (
+            <div className="mt-3 rounded-lg overflow-hidden h-32 border border-gray-200 dark:border-gray-700">
+              <img
+                src={coverImage}
+                alt="封面预览"
+                className="w-full h-full object-cover"
+                onError={() => setImageError('图片加载失败，请检查 URL 是否正确')}
+              />
+            </div>
+          )}
+          {!coverImage && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
+              <Image className="w-4 h-4" />
+              未设置封面图，将显示渐变色装饰条
+            </div>
+          )}
         </div>
 
         {/* Status Toggle */}
@@ -576,6 +682,20 @@ export const PostEditor: React.FC = () => {
             onChange={(val) => setContent(val || '')}
             height={500}
           />
+
+          {/* 字数统计 */}
+          {content && (() => {
+            const chars = content.replace(/\s/g, '').length;
+            const words = content.trim().split(/\s+/).filter(Boolean).length;
+            const readMin = Math.max(1, Math.ceil(chars / 300));
+            return (
+              <div className={`mt-2 flex items-center gap-4 text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                <span>字符数：<span className={isDark ? 'text-gray-300' : 'text-gray-600'}>{chars.toLocaleString()}</span></span>
+                <span>词数：<span className={isDark ? 'text-gray-300' : 'text-gray-600'}>{words.toLocaleString()}</span></span>
+                <span>预计阅读：<span className="text-lobster-500 font-medium">约 {readMin} 分钟</span></span>
+              </div>
+            );
+          })()}
         </div>
         </>
       )}
