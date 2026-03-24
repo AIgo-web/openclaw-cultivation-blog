@@ -1,14 +1,17 @@
 // GitHub Pages SPA 路由恢复：将 404.html 重定向过来的路径还原
+// 404.html 将路径编码为 ?p=/some/path 格式，这里负责还原
 (function(l) {
-  if (l.search[1] === '/' ) {
-    var decoded = l.search.slice(1).split('&').map(function(s) {
-      return s.replace(/~and~/g, '&')
-    });
+  var search = l.search;
+  // 匹配 ?p=/ 开头的参数（404.html 的编码格式）
+  var match = search.match(/[?&]p=(\/[^&]*)/);
+  if (match) {
+    var path = match[1].replace(/~and~/g, '&');
+    // 提取可能存在的 q= 参数（原始 query string）
+    var qMatch = search.match(/[?&]q=([^&]*)/);
+    var query = qMatch ? '?' + qMatch[1].replace(/~and~/g, '&') : '';
     window.history.replaceState(
       null, null,
-      l.pathname.slice(0, -1) + decoded[0] +
-      (decoded[1] ? '?' + decoded[1] : '') +
-      l.hash
+      l.pathname + path + query + l.hash
     );
   }
 }(window.location));
