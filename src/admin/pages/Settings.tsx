@@ -1,7 +1,14 @@
-import React, { useState } from 'react';
-import { Save, Lock, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Save, Lock, Eye, EyeOff, CheckCircle, XCircle, Github, Loader2, Trash2 } from 'lucide-react';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { useAuth } from '../context/AuthContext';
+import {
+  loadGitHubConfig,
+  saveGitHubConfig,
+  clearGitHubConfig,
+  validateGitHubConfig,
+  type GitHubConfig,
+} from '../../services/githubService';
 
 interface BlogSettings {
   title: string;
@@ -20,6 +27,50 @@ export const Settings: React.FC = () => {
     author: 'OpenClaw 折腾人',
     description: '记录 OpenClaw AI Agent 的折腾历程、技巧心得与踩坑实录。',
   });
+
+  // ── GitHub 发布配置 ──────────────────────────────────
+  const [ghConfig, setGhConfig] = useState<GitHubConfig>(() => {
+    return loadGitHubConfig() ?? {
+      token: '',
+      owner: 'AIgo-web',
+      repo: 'openclaw-cultivation-blog',
+      branch: 'main',
+    };
+  });
+  const [showToken, setShowToken] = useState(false);
+  const [ghValidating, setGhValidating] = useState(false);
+  const [ghResult, setGhResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleGhSave = async () => {
+    if (!ghConfig.token.trim()) {
+      setGhResult({ success: false, message: '请填写 GitHub Token' });
+      return;
+    }
+    setGhValidating(true);
+    setGhResult(null);
+    const result = await validateGitHubConfig(ghConfig);
+    if (result.valid) {
+      saveGitHubConfig(ghConfig);
+      setGhResult({ success: true, message: result.message + '，配置已保存' });
+    } else {
+      setGhResult({ success: false, message: result.message });
+    }
+    setGhValidating(false);
+  };
+
+  const handleGhClear = () => {
+    clearGitHubConfig();
+    setGhConfig({ token: '', owner: 'AIgo-web', repo: 'openclaw-cultivation-blog', branch: 'main' });
+    setGhResult(null);
+  };
+
+  // 页面加载时检查已保存配置的有效性（静默）
+  useEffect(() => {
+    const saved = loadGitHubConfig();
+    if (saved?.token) {
+      setGhConfig(saved);
+    }
+  }, []);
 
   // 密码修改状态
   const [currentPassword, setCurrentPassword] = useState('');
@@ -156,6 +207,146 @@ export const Settings: React.FC = () => {
             <Save className="w-5 h-5" />
             保存设置
           </button>
+        </div>
+
+        {/* GitHub 自动发布配置 */}
+        <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-900' : 'bg-white'} border border-gray-200 dark:border-gray-800`}>
+          <div className="flex items-center gap-2 mb-2">
+            <Github className={`w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+            <h2 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              GitHub 自动发布
+            </h2>
+          </div>
+          <p className={`text-sm mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            配置后，在文章编辑器中可一键将文章推送到 GitHub，自动触发部署，约 1 分钟内全网生效。
+          </p>
+
+          <div className="space-y-4 max-w-lg">
+            {/* Token */}
+            <div>
+              <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                GitHub Personal Access Token
+              </label>
+              <p className={`text-xs mb-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                前往 GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens，
+                新建一个 Token，勾选 <strong>Contents: Read and write</strong> 权限。
+              </p>
+              <div className="relative">
+                <input
+                  type={showToken ? 'text' : 'password'}
+                  value={ghConfig.token}
+                  onChange={(e) => setGhConfig(c => ({ ...c, token: e.target.value }))}
+                  placeholder="github_pat_xxx..."
+                  className={`w-full px-4 py-2.5 pr-10 rounded-lg border font-mono text-sm
+                    ${isDark
+                      ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500'
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                    } focus:outline-none focus:ring-2 focus:ring-lobster-500`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowToken(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Owner / Repo / Branch */}
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Owner（用户名）
+                </label>
+                <input
+                  type="text"
+                  value={ghConfig.owner}
+                  onChange={(e) => setGhConfig(c => ({ ...c, owner: e.target.value }))}
+                  placeholder="AIgo-web"
+                  className={`w-full px-3 py-2 rounded-lg border text-sm
+                    ${isDark
+                      ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500'
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                    } focus:outline-none focus:ring-2 focus:ring-lobster-500`}
+                />
+              </div>
+              <div>
+                <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  仓库名
+                </label>
+                <input
+                  type="text"
+                  value={ghConfig.repo}
+                  onChange={(e) => setGhConfig(c => ({ ...c, repo: e.target.value }))}
+                  placeholder="openclaw-cultivation-blog"
+                  className={`w-full px-3 py-2 rounded-lg border text-sm
+                    ${isDark
+                      ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500'
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                    } focus:outline-none focus:ring-2 focus:ring-lobster-500`}
+                />
+              </div>
+              <div>
+                <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  分支
+                </label>
+                <input
+                  type="text"
+                  value={ghConfig.branch}
+                  onChange={(e) => setGhConfig(c => ({ ...c, branch: e.target.value }))}
+                  placeholder="main"
+                  className={`w-full px-3 py-2 rounded-lg border text-sm
+                    ${isDark
+                      ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500'
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                    } focus:outline-none focus:ring-2 focus:ring-lobster-500`}
+                />
+              </div>
+            </div>
+
+            {/* 验证结果 */}
+            {ghResult && (
+              <div className={`flex items-start gap-2 p-3 rounded-lg text-sm ${
+                ghResult.success
+                  ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400'
+                  : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400'
+              }`}>
+                {ghResult.success
+                  ? <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                  : <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                }
+                {ghResult.message}
+              </div>
+            )}
+
+            {/* 操作按钮 */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleGhSave}
+                disabled={ghValidating}
+                className="flex items-center gap-2 px-5 py-2.5 bg-lobster-500 hover:bg-lobster-600 disabled:bg-lobster-400 text-white rounded-lg font-medium transition-colors text-sm"
+              >
+                {ghValidating
+                  ? <><Loader2 className="w-4 h-4 animate-spin" />验证中...</>
+                  : <><CheckCircle className="w-4 h-4" />验证并保存</>
+                }
+              </button>
+              {loadGitHubConfig()?.token && (
+                <button
+                  onClick={handleGhClear}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm border transition-colors
+                    ${isDark
+                      ? 'border-gray-700 text-gray-400 hover:bg-gray-800'
+                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                    }`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  清除配置
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* 修改密码 */}
