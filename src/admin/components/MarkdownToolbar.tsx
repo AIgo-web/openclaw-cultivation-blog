@@ -1,5 +1,8 @@
 import React from 'react';
+import type { LucideProps } from 'lucide-react';
 import { Bold, Italic, Code, Heading2, List, ListOrdered, Link, Image, Upload } from 'lucide-react';
+
+type LucideIcon = React.ForwardRefExoticComponent<Omit<LucideProps, 'ref'> & React.RefAttributes<SVGSVGElement>>;
 
 interface MarkdownToolbarProps {
   onInsert: (before: string, after: string, placeholder?: string) => void;
@@ -7,7 +10,7 @@ interface MarkdownToolbarProps {
 }
 
 interface ToolButton {
-  icon?: React.ComponentType<{ className?: string }>;
+  icon?: LucideIcon;
   tooltip: string;
   label?: string;
   action?: () => void;
@@ -45,7 +48,7 @@ export const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({ onInsert, onIm
       action: () => onInsert('`', '`', '代码'),
     },
     {
-      icon: null,
+      icon: undefined,
       tooltip: '分隔线',
       label: '---',
       action: () => onInsert('\n---\n', '', ''),

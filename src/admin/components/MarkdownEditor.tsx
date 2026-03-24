@@ -1,6 +1,5 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Upload } from 'lucide-react';
 import { MarkdownToolbar } from './MarkdownToolbar';
 
 interface MarkdownEditorProps {
@@ -20,7 +19,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [markdown, setMarkdown] = React.useState(value);
   const [lastSaved, setLastSaved] = React.useState<string>('');
-  const saveTimeoutRef = React.useRef<NodeJS.Timeout>();
+  const saveTimeoutRef = React.useRef<ReturnType<typeof setTimeout>>();
 
   // 当 value prop 改变时，同步更新内部 state
   React.useEffect(() => {
