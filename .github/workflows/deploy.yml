@@ -1,9 +1,9 @@
-name: Deploy to GitHub Pages
+name: Deploy
 
 on:
   push:
     branches: [main]
-  workflow_dispatch: # 允许手动触发
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,7 +15,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  # ── Job 1: 构建 GitHub Pages 版本并部署 ──────────────────────────
+  build-github:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -37,8 +38,8 @@ jobs:
         with:
           path: dist
 
-  deploy:
-    needs: build
+  deploy-github:
+    needs: build-github
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -47,3 +48,46 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # ── Job 2: 构建腾讯云版本并 scp 上传 ─────────────────────────────
+  deploy-tencent:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build for Tencent Cloud
+        run: npx vite build --mode tencent
+
+      - name: Deploy to Tencent Cloud via SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.TENCENT_HOST }}
+          username: ${{ secrets.TENCENT_USER }}
+          password: ${{ secrets.TENCENT_PASSWORD }}
+          port: 22
+          source: "dist/*"
+          target: "/var/www/lobster-blog"
+          strip_components: 1
+          overwrite: true
+
+      - name: Reload Apache
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.TENCENT_HOST }}
+          username: ${{ secrets.TENCENT_USER }}
+          password: ${{ secrets.TENCENT_PASSWORD }}
+          port: 22
+          script: |
+            sudo chown -R www-data:www-data /var/www/lobster-blog
+            sudo chmod -R 755 /var/www/lobster-blog
+            sudo systemctl reload apache2
+            echo "Deploy done: $(date)"
