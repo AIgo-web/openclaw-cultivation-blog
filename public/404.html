@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <title>OpenClaw 龙虾养成计划</title>
+    <script>
+      // GitHub Pages SPA 路由重定向
+      // 将路径编码到 query string，让 index.html 解码并恢复路由
+      var segmentCount = 1; // 子路径层级，根目录部署用 0，子路径（如 /openclaw-cultivation-blog/）用 1
+      var l = window.location;
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        l.pathname.split('/').slice(0, 1 + segmentCount).join('/') + '/?p=/' +
+        l.pathname.slice(1).split('/').slice(segmentCount).join('/').replace(/&/g, '~and~') +
+        (l.search ? '&q=' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+        l.hash
+      );
+    </script>
+  </head>
+  <body>
+    <p>页面跳转中...</p>
+  </body>
+</html>

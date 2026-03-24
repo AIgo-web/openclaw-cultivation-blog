@@ -1,0 +1,266 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import 'highlight.js/styles/github.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============= Markdown Editor Styles - 最高优先级覆盖 ============= */
+
+.markdown-editor {
+  width: 100%;
+  color-scheme: light;
+}
+
+/* 主编辑器容器 */
+.markdown-editor .w-md-editor {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  display: flex !important;
+}
+
+.markdown-editor .w-md-editor-container {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  display: flex !important;
+}
+
+/* ===== 文本输入框 - 关键区域 ===== */
+.markdown-editor .w-md-editor-text-input,
+.markdown-editor .w-md-editor-text-textarea,
+.markdown-editor textarea,
+.markdown-editor input {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  caret-color: #000000 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* Pre 和 code 标签 */
+.markdown-editor .w-md-editor-text-input pre,
+.markdown-editor .w-md-editor-text-textarea pre,
+.markdown-editor textarea pre {
+  color: #000000 !important;
+  background-color: #ffffff !important;
+}
+
+.markdown-editor .w-md-editor-text {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 14px !important;
+  color: #000000 !important;
+  line-height: 1.5 !important;
+  flex: 1 !important;
+}
+
+/* ===== 编辑器预览区域 ===== */
+.markdown-editor .w-md-editor-preview {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  display: block !important;
+  flex: 1 !important;
+  overflow: auto !important;
+}
+
+.markdown-editor .w-md-editor-preview-inner {
+  color: #000000 !important;
+  display: block !important;
+}
+
+.markdown-editor .w-md-editor-preview-inner * {
+  color: #000000 !important;
+}
+
+.markdown-editor .w-md-editor-preview-inner p,
+.markdown-editor .w-md-editor-preview-inner div,
+.markdown-editor .w-md-editor-preview-inner span,
+.markdown-editor .w-md-editor-preview-inner h1,
+.markdown-editor .w-md-editor-preview-inner h2,
+.markdown-editor .w-md-editor-preview-inner h3,
+.markdown-editor .w-md-editor-preview-inner h4,
+.markdown-editor .w-md-editor-preview-inner h5,
+.markdown-editor .w-md-editor-preview-inner h6,
+.markdown-editor .w-md-editor-preview-inner li,
+.markdown-editor .w-md-editor-preview-inner ol,
+.markdown-editor .w-md-editor-preview-inner ul {
+  color: #000000 !important;
+  background-color: transparent !important;
+}
+
+/* ===== 编辑器工具栏 ===== */
+.markdown-editor .w-md-editor-toolbar {
+  background-color: #f5f5f5 !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.markdown-editor .w-md-editor-toolbar button {
+  color: #000000 !important;
+}
+
+.markdown-editor .w-md-editor-toolbar button:hover {
+  background-color: #e5e7eb !important;
+}
+
+/* ===== 编辑器内容区 ===== */
+.markdown-editor .w-md-editor-content {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  display: flex !important;
+}
+
+/* ===== 代码块和内联代码 ===== */
+.markdown-editor code {
+  color: #000000 !important;
+  background-color: #f5f5f5 !important;
+}
+
+.markdown-editor pre {
+  background-color: #f5f5f5 !important;
+  color: #000000 !important;
+}
+
+/* ===== 列表项 ===== */
+.markdown-editor li,
+.markdown-editor ol,
+.markdown-editor ul {
+  color: #000000 !important;
+}
+
+@layer base {
+  :root {
+    --color-bg: #fafafa;
+    --color-surface: #ffffff;
+    --color-border: #e5e7eb;
+  }
+
+  .dark {
+    --color-bg: #0f1117;
+    --color-surface: #1a1d27;
+    --color-border: #2d3148;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-[--color-bg] text-gray-800 dark:text-gray-200 transition-colors duration-300;
+    font-family: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+  }
+
+  * {
+    @apply border-[--color-border];
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-[--color-surface] rounded-2xl border border-[--color-border] shadow-sm transition-all duration-200;
+  }
+
+  .tag-badge {
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-all duration-200;
+  }
+
+  .nav-link {
+    @apply text-gray-600 dark:text-gray-400 hover:text-lobster-500 dark:hover:text-lobster-400 transition-colors duration-200 font-medium;
+  }
+
+  .btn-primary {
+    @apply bg-lobster-500 hover:bg-lobster-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200;
+  }
+}
+
+/* Markdown content styles */
+.markdown-body {
+  @apply text-gray-800 dark:text-gray-200 leading-relaxed;
+}
+
+.markdown-body pre {
+  @apply bg-gray-900 dark:bg-gray-950 text-gray-100 rounded-xl p-4 overflow-x-auto my-4;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.markdown-body code:not(pre code) {
+  @apply bg-gray-100 dark:bg-gray-800 text-lobster-600 dark:text-lobster-300 px-1.5 py-0.5 rounded text-sm;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.markdown-body blockquote {
+  @apply border-l-4 border-lobster-400 bg-lobster-50 dark:bg-lobster-900/20 pl-4 py-2 my-4 rounded-r-lg italic text-gray-700 dark:text-gray-300;
+}
+
+.markdown-body img {
+  @apply rounded-xl max-w-full my-4 shadow-md;
+}
+
+.markdown-body table {
+  @apply w-full border-collapse my-4;
+}
+
+.markdown-body th {
+  @apply bg-gray-100 dark:bg-gray-800 px-4 py-2 text-left font-semibold border border-gray-200 dark:border-gray-700;
+}
+
+.markdown-body td {
+  @apply px-4 py-2 border border-gray-200 dark:border-gray-700;
+}
+
+.markdown-body tr:nth-child(even) {
+  @apply bg-gray-50 dark:bg-gray-900/50;
+}
+
+/* Lobster loader animation */
+@keyframes swim {
+  0%, 100% { transform: translateX(-5px) rotate(-3deg); }
+  50% { transform: translateX(5px) rotate(3deg); }
+}
+
+.lobster-swim {
+  animation: swim 1.5s ease-in-out infinite;
+}
+
+/* Dark mode highlight.js override */
+.dark .hljs {
+  background: #1e2030;
+  color: #cdd6f4;
+}
+
+/* ============= 移动端优化 ============= */
+
+/* iOS 底部安全区支持（ShareButtons 底部弹窗用） */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* 防止代码块在手机上横向撑破布局 */
+.markdown-body pre {
+  overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 防止长单词/URL 在手机上溢出 */
+.markdown-body p,
+.markdown-body li {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* 表格在手机上可滑动 */
+.markdown-body .table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 手机端触摸点击区域优化 */
+@media (max-width: 640px) {
+  .tag-badge {
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
