@@ -15,7 +15,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # ── Job 1: 构建 GitHub Pages 版本并部署 ──────────────────────────
+  # ═══════════════════════════════════════════════════════════
+  # Job 1: 部署到 GitHub Pages（域名备案期间保持正常）
+  # ═══════════════════════════════════════════════════════════
   build-github:
     runs-on: ubuntu-latest
     steps:
@@ -49,9 +51,14 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-  # ── Job 2: 构建腾讯云版本并 scp 上传 ─────────────────────────────
+  # ═══════════════════════════════════════════════════════════
+  # Job 2: 部署到腾讯云服务器（域名备案期间暂停）
+  # ═══════════════════════════════════════════════════════════
   deploy-tencent:
     runs-on: ubuntu-latest
+    # 域名备案期间禁用，备案完成后删除下面这行
+    if: false
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -67,12 +74,12 @@ jobs:
       - name: Build for Tencent Cloud
         run: npx vite build --mode tencent
 
-      - name: Deploy to Tencent Cloud via SSH
+      - name: Deploy to Tencent Cloud via SSH Key
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.TENCENT_HOST }}
           username: ${{ secrets.TENCENT_USER }}
-          password: ${{ secrets.TENCENT_PASSWORD }}
+          key: ${{ secrets.TENCENT_SSH_KEY }}
           port: 22
           source: "dist/*"
           target: "/var/www/lobster-blog"
@@ -84,7 +91,7 @@ jobs:
         with:
           host: ${{ secrets.TENCENT_HOST }}
           username: ${{ secrets.TENCENT_USER }}
-          password: ${{ secrets.TENCENT_PASSWORD }}
+          key: ${{ secrets.TENCENT_SSH_KEY }}
           port: 22
           script: |
             sudo chown -R www-data:www-data /var/www/lobster-blog
