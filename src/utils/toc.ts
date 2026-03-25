@@ -75,17 +75,10 @@ export function extractHeadings(content: string): TocHeading[] {
 
 /**
  * 根据级别计算缩进
+ * 全部左对齐，不缩进
  */
 export function getHeadingIndent(level: number): string {
-  const indents: Record<number, string> = {
-    1: 'pl-0',
-    2: 'pl-4',
-    3: 'pl-8',
-    4: 'pl-12',
-    5: 'pl-16',
-    6: 'pl-20',
-  };
-  return indents[level] || 'pl-0';
+  return 'pl-0';
 }
 
 /**

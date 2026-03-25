@@ -3,6 +3,16 @@ import react from '@vitejs/plugin-react'
 import fs from 'fs'
 import path from 'path'
 
+// XML 转义函数
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   // 加载对应 mode 的环境变量（.env.github / .env.tencent / .env 等）
@@ -20,7 +30,6 @@ export default defineConfig(({ mode }) => {
   // 自定义插件：构建完成后将 404.html 中的 segmentCount 替换为实际值
   const inject404Plugin = {
     name: 'inject-404-segment-count',
-    // writeBundle 在所有文件写入完成后执行，比 closeBundle 更可靠
     writeBundle() {
       const file404 = path.resolve(__dirname, 'dist/404.html')
       if (fs.existsSync(file404)) {
@@ -37,9 +46,37 @@ export default defineConfig(({ mode }) => {
     }
   }
 
+  // 自定义插件：开发模式下提供 RSS Feed
+  const rssFeedPlugin = {
+    name: 'rss-feed',
+    configureServer(server: any) {
+      server.middlewares.use('/feed.xml', (_req: any, res: any) => {
+        const blogUrl = env.VITE_BLOG_URL || 'https://openclaw.ai'
+        const blogTitle = env.VITE_BLOG_TITLE || 'OpenClaw 龙虾养成计划'
+        const blogDesc = env.VITE_BLOG_DESC || '记录 OpenClaw AI Agent 的折腾历程'
+
+        const rssContent = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>${escapeXml(blogTitle)}</title>
+    <link>${blogUrl}</link>
+    <description>${escapeXml(blogDesc)}</description>
+    <language>zh-CN</language>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+    <atom:link href="${blogUrl}/feed.xml" rel="self" type="application/rss+xml" />
+  </channel>
+</rss>`
+
+        res.setHeader('Content-Type', 'application/xml; charset=utf-8')
+        res.setHeader('Cache-Control', 'no-cache')
+        res.end(rssContent)
+      })
+    }
+  }
+
   return {
     base,
-    plugins: [react(), inject404Plugin],
+    plugins: [react(), inject404Plugin, rssFeedPlugin],
     server: {
       host: true,
       port: 5173,
@@ -52,13 +89,71 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
+      // ✅ V3 性能优化：代码分割配置
       rollupOptions: {
         output: {
-          entryFileNames: `[name].[hash].js`,
-          chunkFileNames: `[name].[hash].js`,
-          assetFileNames: `[name].[hash][extname]`,
+          // 入口文件命名
+          entryFileNames: `[name]-[hash].js`,
+          // 异步 chunk 命名（用于代码分割）
+          chunkFileNames: `[name]-[hash].js`,
+          // 静态资源命名
+          assetFileNames: `[name]-[hash][extname]`,
+          // ✅ 手动分包策略
+          manualChunks: (id: string) => {
+            // React 核心库
+            if (id.includes('node_modules/react')) {
+              return 'vendor-react';
+            }
+            // React Router
+            if (id.includes('node_modules/react-router')) {
+              return 'vendor-router';
+            }
+            // Markdown 相关库
+            if (id.includes('node_modules/react-markdown') || 
+                id.includes('node_modules/remark') || 
+                id.includes('node_modules/rehype')) {
+              return 'vendor-markdown';
+            }
+            // Highlight.js
+            if (id.includes('node_modules/highlight.js')) {
+              return 'vendor-highlight';
+            }
+            // Lucide 图标库
+            if (id.includes('node_modules/lucide-react')) {
+              return 'vendor-icons';
+            }
+            // 其他第三方库
+            if (id.includes('node_modules')) {
+              return 'vendor-misc';
+            }
+            // 管理后台页面单独分包
+            if (id.includes('/admin/')) {
+              return 'admin';
+            }
+          },
         },
       },
+      // ✅ 启用 CSS 代码分割
+      cssCodeSplit: true,
+      // ✅ 启用打包压缩
+      minify: 'esbuild',
+      // ✅ 生成 sourcemap（生产环境可关闭）
+      sourcemap: mode !== 'production',
+      // ✅ 启用 gzip 压缩（需要服务器配合）
+      chunkSizeWarningLimit: 500, // KB
     },
+    // ✅ V3 性能优化：依赖预构建
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        'lucide-react',
+        'date-fns',
+      ],
+    },
+    // ✅ V3 性能优化：构建后分析
+    // @ts-ignore
+    ...(process.env.ANALYZE && { plugins: [] }),
   }
 })

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { MarkdownToolbar } from './MarkdownToolbar';
+import { Undo2, Redo2, Keyboard } from 'lucide-react';
 
 interface MarkdownEditorProps {
   value: string;
@@ -9,26 +10,69 @@ interface MarkdownEditorProps {
   onImportMarkdown?: (content: string) => void;
 }
 
+interface HistoryState {
+  content: string;
+  timestamp: number;
+}
+
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ 
   value, 
   onChange,
   height = 400,
   onImportMarkdown 
 }) => {
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [markdown, setMarkdown] = React.useState(value);
-  const [lastSaved, setLastSaved] = React.useState<string>('');
-  const saveTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [markdown, setMarkdown] = useState(value);
+  const [lastSaved, setLastSaved] = useState<string>('');
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+
+  // 历史记录
+  const [history, setHistory] = useState<HistoryState[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const historyTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // 当 value prop 改变时，同步更新内部 state
-  React.useEffect(() => {
+  useEffect(() => {
     setMarkdown(value);
   }, [value]);
 
+  // 添加到历史记录
+  const addToHistory = useCallback((content: string) => {
+    const newState = { content, timestamp: Date.now() };
+    setHistory(prev => {
+      const newHistory = [...prev.slice(0, historyIndex + 1), newState];
+      // 限制历史记录数量
+      return newHistory.slice(-50);
+    });
+    setHistoryIndex(prev => Math.min(prev + 1, 49));
+  }, [historyIndex]);
+
+  // 撤销
+  const handleUndo = useCallback(() => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      const newContent = history[newIndex].content;
+      setMarkdown(newContent);
+      onChange(newContent);
+    }
+  }, [history, historyIndex, onChange]);
+
+  // 重做
+  const handleRedo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      const newContent = history[newIndex].content;
+      setMarkdown(newContent);
+      onChange(newContent);
+    }
+  }, [history, historyIndex, onChange]);
+
   // 自动保存草稿到 localStorage
-  React.useEffect(() => {
-    // 1.5 秒没有编辑后自动保存
+  useEffect(() => {
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
@@ -37,6 +81,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       if (markdown && markdown !== lastSaved) {
         localStorage.setItem('markdown-draft', markdown);
         setLastSaved(markdown);
+        addToHistory(markdown);
       }
     }, 1500);
 
@@ -45,7 +90,116 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [markdown, lastSaved]);
+  }, [markdown, lastSaved, addToHistory]);
+
+  // 键盘快捷键
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 检查是否在编辑器中
+      if (!textareaRef.current?.contains(document.activeElement)) return;
+
+      const isMod = e.ctrlKey || e.metaKey;
+
+      // Ctrl/Cmd + S - 保存草稿
+      if (isMod && e.key === 's') {
+        e.preventDefault();
+        localStorage.setItem('markdown-draft', markdown);
+        setLastSaved(markdown);
+        addToHistory(markdown);
+        return;
+      }
+
+      // Ctrl/Cmd + Z - 撤销
+      if (isMod && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+        return;
+      }
+
+      // Ctrl/Cmd + Shift + Z / Ctrl + Y - 重做
+      if ((isMod && e.shiftKey && e.key === 'z') || (isMod && e.key === 'y')) {
+        e.preventDefault();
+        handleRedo();
+        return;
+      }
+
+      // Ctrl/Cmd + B - 加粗
+      if (isMod && e.key === 'b') {
+        e.preventDefault();
+        handleInsert('**', '**', '粗体文字');
+        return;
+      }
+
+      // Ctrl/Cmd + I - 斜体
+      if (isMod && e.key === 'i') {
+        e.preventDefault();
+        handleInsert('*', '*', '斜体文字');
+        return;
+      }
+
+      // Ctrl/Cmd + K - 链接
+      if (isMod && e.key === 'k') {
+        e.preventDefault();
+        handleInsert('[', '](url)', '链接文字');
+        return;
+      }
+
+      // Ctrl/Cmd + ` - 行内代码
+      if (isMod && e.key === '`') {
+        e.preventDefault();
+        handleInsert('`', '`', '代码');
+        return;
+      }
+
+      // Ctrl/Cmd + Shift + C - 代码块
+      if (isMod && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+        handleInsert('\n```\n', '\n```\n', '代码块内容');
+        return;
+      }
+
+      // Tab - 缩进
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const textarea = textareaRef.current;
+        if (textarea) {
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const newContent = markdown.substring(0, start) + '  ' + markdown.substring(end);
+          setMarkdown(newContent);
+          onChange(newContent);
+          setTimeout(() => {
+            textarea.selectionStart = textarea.selectionEnd = start + 2;
+          }, 0);
+        }
+        return;
+      }
+
+      // Ctrl/Cmd + / - 注释/反注释
+      if (isMod && e.key === '/') {
+        e.preventDefault();
+        const textarea = textareaRef.current;
+        if (textarea) {
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const selectedLines = markdown.substring(start, end).split('\n');
+          const newLines = selectedLines.map(line => {
+            if (line.trim().startsWith('<!--') && line.trim().endsWith('-->')) {
+              return line.replace(/^(\s*)<!--\s*/, '').replace(/\s*-->$/, '');
+            }
+            return `<!-- ${line} -->`;
+          });
+          const newContent = markdown.substring(0, start) + newLines.join('\n') + markdown.substring(end);
+          setMarkdown(newContent);
+          onChange(newContent);
+        }
+        return;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [markdown, onChange, handleUndo, handleRedo, addToHistory]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
@@ -60,7 +214,6 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 只接受 .md 和 .markdown 文件
     if (!file.name.endsWith('.md') && !file.name.endsWith('.markdown')) {
       alert('请选择 Markdown 文件（.md 或 .markdown）');
       return;
@@ -73,8 +226,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         setMarkdown(content);
         onChange(content);
         onImportMarkdown?.(content);
+        addToHistory(content);
         
-        // 清空 file input，以便重复导入同一文件
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -109,17 +262,15 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     
     let newText: string;
     if (selectedText) {
-      // 如果有选中文字，在两端加上标记
       newText = markdown.substring(0, start) + before + selectedText + after + markdown.substring(end);
     } else {
-      // 如果没选中，插入占位符
       newText = markdown.substring(0, start) + before + placeholder + after + markdown.substring(end);
     }
 
     setMarkdown(newText);
     onChange(newText);
+    addToHistory(newText);
 
-    // 修复光标位置
     setTimeout(() => {
       if (selectedText) {
         textarea.selectionStart = start + before.length;
@@ -131,6 +282,17 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       textarea.focus();
     }, 0);
   };
+
+  const shortcuts = [
+    { key: 'Ctrl/Cmd + S', desc: '保存草稿' },
+    { key: 'Ctrl/Cmd + Z', desc: '撤销' },
+    { key: 'Ctrl/Cmd + Y', desc: '重做' },
+    { key: 'Ctrl/Cmd + B', desc: '加粗' },
+    { key: 'Ctrl/Cmd + I', desc: '斜体' },
+    { key: 'Ctrl/Cmd + K', desc: '插入链接' },
+    { key: 'Ctrl/Cmd + `', desc: '行内代码' },
+    { key: 'Tab', desc: '缩进' },
+  ];
 
   return (
     <div 
@@ -153,7 +315,54 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       />
 
       {/* 工具栏 */}
-      <MarkdownToolbar onInsert={handleInsert} onImport={handleImportClick} />
+      <div className="flex items-center justify-between px-2 py-1.5 border-b border-gray-200 bg-gray-50">
+        <div className="flex items-center gap-1">
+          <MarkdownToolbar onInsert={handleInsert} onImport={handleImportClick} />
+        </div>
+        <div className="flex items-center gap-2">
+          {/* 历史记录按钮 */}
+          <button
+            onClick={handleUndo}
+            disabled={historyIndex <= 0}
+            title="撤销 (Ctrl+Z)"
+            className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <Undo2 className="w-4 h-4 text-gray-600" />
+          </button>
+          <button
+            onClick={handleRedo}
+            disabled={historyIndex >= history.length - 1}
+            title="重做 (Ctrl+Y)"
+            className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <Redo2 className="w-4 h-4 text-gray-600" />
+          </button>
+          {/* 快捷键提示 */}
+          <button
+            onClick={() => setShowShortcuts(!showShortcuts)}
+            title="快捷键"
+            className="p-1.5 rounded hover:bg-gray-200 transition-colors"
+          >
+            <Keyboard className="w-4 h-4 text-gray-600" />
+          </button>
+        </div>
+      </div>
+
+      {/* 快捷键提示浮层 */}
+      {showShortcuts && (
+        <div className="px-3 py-2 bg-blue-50 border-b border-blue-100">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+            {shortcuts.map((s, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <kbd className="px-1.5 py-0.5 bg-white rounded border border-gray-200 font-mono text-blue-600">
+                  {s.key}
+                </kbd>
+                <span className="text-gray-600">{s.desc}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 编辑器主体 */}
       <div
@@ -183,6 +392,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             outline: 'none',
           }}
           placeholder="在这里写 Markdown..."
+          spellCheck={false}
         />
 
         {/* 预览区 */}

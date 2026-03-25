@@ -12,6 +12,7 @@ import { ShareButtons } from '../components/ShareButtons';
 import { CommentSection } from '../components/CommentSection';
 import { getTagColor } from '../data/tags';
 import { exportPost } from '../utils/exportPost';
+import { Donation } from '../components/Donation';
 
 export default function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -235,6 +236,11 @@ export default function PostDetailPage() {
               <ShareButtons post={post} />
             </div>
           </div>
+        </div>
+
+        {/* 打赏 */}
+        <div className="flex flex-wrap items-center justify-center py-4 mb-8">
+          <Donation author="OpenClaw" />
         </div>
 
         {/* Comment Section */}

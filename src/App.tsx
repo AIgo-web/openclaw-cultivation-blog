@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import React, { lazy, Suspense } from 'react';
+import { useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
@@ -6,13 +8,6 @@ import PostDetailPage from './pages/PostDetailPage';
 import TagsPage from './pages/TagsPage';
 import AboutPage from './pages/AboutPage';
 import { AdminLayout } from './admin/layout/AdminLayout';
-import { Dashboard } from './admin/pages/Dashboard';
-import { PostList } from './admin/pages/PostList';
-import { PostEditor } from './admin/pages/PostEditor';
-import { TagManager } from './admin/pages/TagManager';
-import { Settings } from './admin/pages/Settings';
-import { CommentManager } from './admin/pages/CommentManager';
-import { Analytics } from './admin/pages/Analytics';
 import { LoginPage } from './admin/pages/LoginPage';
 import { AuthProvider } from './admin/context/AuthContext';
 import { ProtectedRoute } from './admin/components/ProtectedRoute';
@@ -23,10 +18,46 @@ import { PostsProvider } from './contexts/PostsContext';
 import { CommentsProvider } from './contexts/CommentsContext';
 import { ViewsProvider } from './contexts/ViewsContext';
 import { useSearchShortcut } from './hooks/useSearchShortcut';
+import { injectStructuredData, generateSiteNavigationSchema } from './services/seoService';
+import { Dashboard } from './admin/pages/Dashboard';
 
-// 搜索快捷键组件（在 SearchProvider 内部）
+// ✅ 代码分割：懒加载管理后台页面（使用命名导出）
+const PostList = lazy(() => import('./admin/pages/PostList').then(m => ({ default: m.PostList })));
+const PostEditor = lazy(() => import('./admin/pages/PostEditor').then(m => ({ default: m.PostEditor })));
+const TagManager = lazy(() => import('./admin/pages/TagManager').then(m => ({ default: m.TagManager })));
+const Settings = lazy(() => import('./admin/pages/Settings').then(m => ({ default: m.default })));
+const CommentManager = lazy(() => import('./admin/pages/CommentManager').then(m => ({ default: m.CommentManager })));
+const Analytics = lazy(() => import('./admin/pages/Analytics').then(m => ({ default: m.Analytics })));
+
+// ✅ 加载骨架屏组件
+const PageSkeleton = () => (
+  <div className="animate-pulse space-y-6 p-6">
+    <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+      <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+      <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+    </div>
+  </div>
+);
+
+// 搜索快捷键组件
 function SearchShortcutListener() {
   useSearchShortcut();
+  return null;
+}
+
+// SEO 初始化组件
+function SEOInitializer() {
+  useEffect(() => {
+    // 注入网站导航结构化数据
+    const schema = generateSiteNavigationSchema();
+    const cleanup = injectStructuredData(schema, 'site-navigation');
+    
+    return cleanup;
+  }, []);
+  
   return null;
 }
 
@@ -39,6 +70,7 @@ export default function App() {
             <ViewsProvider>
               <ToastProvider>
                 <SearchProvider>
+                  <SEOInitializer />
                   <ToastContainer />
                   <SearchShortcutListener />
                   <Routes>
@@ -46,13 +78,27 @@ export default function App() {
                     <Route path="/admin/login" element={<LoginPage />} />
                     <Route element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
                       <Route path="/admin" element={<Dashboard />} />
-                      <Route path="/admin/posts" element={<PostList />} />
-                      <Route path="/admin/posts/new" element={<PostEditor />} />
-                      <Route path="/admin/posts/edit/:id" element={<PostEditor />} />
-                      <Route path="/admin/tags" element={<TagManager />} />
-                      <Route path="/admin/settings" element={<Settings />} />
-                      <Route path="/admin/comments" element={<CommentManager />} />
-                      <Route path="/admin/analytics" element={<Analytics />} />
+                      <Route path="/admin/posts" element={
+                        <Suspense fallback={<PageSkeleton />}><PostList /></Suspense>
+                      } />
+                      <Route path="/admin/posts/new" element={
+                        <Suspense fallback={<PageSkeleton />}><PostEditor /></Suspense>
+                      } />
+                      <Route path="/admin/posts/edit/:id" element={
+                        <Suspense fallback={<PageSkeleton />}><PostEditor /></Suspense>
+                      } />
+                      <Route path="/admin/tags" element={
+                        <Suspense fallback={<PageSkeleton />}><TagManager /></Suspense>
+                      } />
+                      <Route path="/admin/settings" element={
+                        <Suspense fallback={<PageSkeleton />}><Settings /></Suspense>
+                      } />
+                      <Route path="/admin/comments" element={
+                        <Suspense fallback={<PageSkeleton />}><CommentManager /></Suspense>
+                      } />
+                      <Route path="/admin/analytics" element={
+                        <Suspense fallback={<PageSkeleton />}><Analytics /></Suspense>
+                      } />
                     </Route>
 
                     {/* 前台路由 */}
