@@ -39,7 +39,8 @@ export const getWeChatAccounts = async (): Promise<WeChatAccount[]> => {
 export const publishToWeChat = async (
   postId: string,
   account: string = 'AI养成笔记',
-  defaultCover?: string
+  defaultCover?: string,
+  postContent?: { title: string; summary: string; content: string; tags?: string[] }
 ): Promise<WeChatServiceResponse> => {
   try {
     const response = await fetch(`${API_BASE}/sync`, {
@@ -50,7 +51,9 @@ export const publishToWeChat = async (
       body: JSON.stringify({
         post_id: postId,
         account,
-        default_cover: defaultCover
+        default_cover: defaultCover,
+        // 直接传递文章内容，后端无需读取 posts.ts
+        post: postContent
       }),
     });
 

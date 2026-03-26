@@ -38,4 +38,7 @@ export interface Comment {
   date: string;
   status: 'pending' | 'approved' | 'rejected';
   replies: Reply[];
+  reviewedBy?: string;    // 审核人
+  reviewedAt?: string;    // 审核时间
+  reviewReason?: string;   // 拒绝原因（可选）
 }

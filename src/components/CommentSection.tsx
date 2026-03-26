@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { MessageSquare, Reply, Send, User, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageSquare, Reply, Send, User, ChevronDown, ChevronUp, Flag } from 'lucide-react';
 import { useComments } from '../contexts/CommentsContext';
 import { Comment } from '../types';
 
@@ -15,6 +15,35 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onReply }) => {
   const [showReplies, setShowReplies] = useState(true);
   const [replyAuthor, setReplyAuthor] = useState('');
   const [replyContent, setReplyContent] = useState('');
+  const [showReportForm, setShowReportForm] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+
+  const handleReport = () => {
+    const reason = reportReason.trim();
+    if (!reason) return;
+
+    // 保存举报记录到 localStorage
+    const REPORTS_STORAGE_KEY = 'comment-reports';
+    try {
+      const existingReports = JSON.parse(localStorage.getItem(REPORTS_STORAGE_KEY) || '[]');
+      const newReport = {
+        id: `rpt_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        commentId: comment.id,
+        commentAuthor: comment.author,
+        commentContent: comment.content,
+        reason,
+        reportedAt: new Date().toISOString(),
+        status: 'pending'
+      };
+      localStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify([newReport, ...existingReports]));
+    } catch (error) {
+      console.error('保存举报记录失败:', error);
+    }
+
+    setReportReason('');
+    setShowReportForm(false);
+    alert('举报已提交，感谢你的反馈！');
+  };
 
   const handleSubmitReply = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +84,13 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onReply }) => {
             >
               <Reply className="w-3.5 h-3.5" />
               回复
+            </button>
+            <button
+              onClick={() => setShowReportForm(!showReportForm)}
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+            >
+              <Flag className="w-3.5 h-3.5" />
+              举报
             </button>
             {comment.replies.length > 0 && (
               <button
@@ -103,6 +139,36 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onReply }) => {
             </form>
           )}
 
+          {/* 举报表单 */}
+          {showReportForm && (
+            <form onSubmit={e => { e.preventDefault(); handleReport(); }} className="mt-3 bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
+              <textarea
+                placeholder="请说明举报原因（如：违法信息、垃圾广告、人身攻击等）"
+                value={reportReason}
+                onChange={e => setReportReason(e.target.value.slice(0, 200))}
+                rows={2}
+                required
+                className="w-full mb-2 px-3 py-1.5 text-sm rounded border border-red-300 dark:border-red-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-400 resize-none"
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => { setShowReportForm(false); setReportReason(''); }}
+                  className="px-3 py-1 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  disabled={!reportReason.trim()}
+                  className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                >
+                  <Flag className="w-3 h-3" /> 提交举报
+                </button>
+              </div>
+            </form>
+          )}
+
           {/* 回复列表 */}
           {showReplies && comment.replies.length > 0 && (
             <div className="mt-3 space-y-3 pl-3 border-l-2 border-gray-100 dark:border-gray-700">
@@ -141,6 +207,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ postId }) => {
   const [author, setAuthor] = useState('');
   const [content, setContent] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
   const approvedComments = getPostComments(postId);
 
@@ -150,11 +217,16 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ postId }) => {
     const cleanContent = content.trim().slice(0, 1000);
     if (!cleanContent) return;
 
-    addComment({ postId, author: cleanAuthor, content: cleanContent });
-    setAuthor('');
-    setContent('');
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 4000);
+    try {
+      addComment({ postId, author: cleanAuthor, content: cleanContent });
+      setAuthor('');
+      setContent('');
+      setSubmitted(true);
+      setError('');
+      setTimeout(() => setSubmitted(false), 4000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '评论提交失败');
+    }
   };
 
   const handleReply = (commentId: string, replyAuthor: string, replyContent: string) => {
@@ -182,6 +254,11 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ postId }) => {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-3">
+            {error && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              </div>
+            )}
             <input
               type="text"
               placeholder="你的名字（选填，默认匿名游客）"

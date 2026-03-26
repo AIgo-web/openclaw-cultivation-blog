@@ -257,7 +257,12 @@ export const PostEditor: React.FC = () => {
     setWechatPublishing(true);
     setWechatResult(null);
 
-    const result = await publishToWeChat(postId, selectedWechatAccount);
+    const result = await publishToWeChat(postId, selectedWechatAccount, undefined, {
+      title: title.trim(),
+      summary: summary.trim(),
+      content: content.trim(),
+      tags: selectedTags
+    });
 
     setWechatPublishing(false);
     if (result.success) {

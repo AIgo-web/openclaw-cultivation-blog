@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { MessageSquare, CheckCircle, XCircle, Trash2, Filter, User } from 'lucide-react';
+import { MessageSquare, CheckCircle, XCircle, Trash2, Filter, User, AlertCircle } from 'lucide-react';
 import { useComments } from '../../contexts/CommentsContext';
 import { usePosts } from '../../contexts/PostsContext';
+import { useAuth } from '../context/AuthContext';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import type { Comment } from '../../types';
 
@@ -11,10 +12,14 @@ type FilterType = 'all' | 'pending' | 'approved' | 'rejected';
 
 export const CommentManager: React.FC = () => {
   const { isDark } = useDarkMode();
+  const { username } = useAuth();
   const { comments, approveComment, rejectComment, deleteComment } = useComments();
   const { posts } = usePosts();
   const [filter, setFilter] = useState<FilterType>('pending');
   const [selectedPostId, setSelectedPostId] = useState<string>('');
+  const [rejectReason, setRejectReason] = useState('');
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectingCommentId, setRejectingCommentId] = useState<string | null>(null);
 
   const getPostTitle = (postId: string) =>
     posts.find(p => p.id === postId)?.title || '未知文章';
@@ -31,6 +36,19 @@ export const CommentManager: React.FC = () => {
     if (status === 'approved') return <span className="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">已通过</span>;
     if (status === 'rejected') return <span className="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">已拒绝</span>;
     return <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400">待审核</span>;
+  };
+
+  const handleRejectWithReason = () => {
+    if (rejectingCommentId && rejectReason.trim()) {
+      rejectComment(rejectingCommentId, rejectReason.trim(), username || 'admin');
+      setRejectReason('');
+      setShowRejectModal(false);
+      setRejectingCommentId(null);
+    }
+  };
+
+  const handleApprove = (id: string) => {
+    approveComment(id, username || 'admin');
   };
 
   const filterBtnClass = (f: FilterType) =>
@@ -132,12 +150,25 @@ export const CommentManager: React.FC = () => {
                     {comment.content}
                   </p>
 
-                  <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                    文章：<span className="text-lobster-500">{getPostTitle(comment.postId)}</span>
-                    {comment.replies.length > 0 && (
-                      <span className="ml-3">{comment.replies.length} 条回复</span>
+                  <div className="space-y-1">
+                    <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                      文章：<span className="text-lobster-500">{getPostTitle(comment.postId)}</span>
+                      {comment.replies.length > 0 && (
+                        <span className="ml-3">{comment.replies.length} 条回复</span>
+                      )}
+                    </p>
+                    {(comment.reviewedBy || comment.reviewedAt) && (
+                      <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        审核记录：
+                        <span className={isDark ? 'text-gray-300' : 'text-gray-600'}>
+                          {comment.reviewedBy} 于 {format(new Date(comment.reviewedAt!), 'M月d日 HH:mm', { locale: zhCN })}
+                        </span>
+                        {comment.reviewReason && (
+                          <span className="ml-2 text-red-500">原因：{comment.reviewReason}</span>
+                        )}
+                      </p>
                     )}
-                  </p>
+                  </div>
                 </div>
 
                 {/* Actions */}
@@ -145,14 +176,17 @@ export const CommentManager: React.FC = () => {
                   {comment.status === 'pending' && (
                     <>
                       <button
-                        onClick={() => approveComment(comment.id)}
+                        onClick={() => handleApprove(comment.id)}
                         title="通过"
                         className="p-1.5 rounded-lg text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors"
                       >
                         <CheckCircle className="w-5 h-5" />
                       </button>
                       <button
-                        onClick={() => rejectComment(comment.id)}
+                        onClick={() => {
+                          setRejectingCommentId(comment.id);
+                          setShowRejectModal(true);
+                        }}
                         title="拒绝"
                         className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
                       >
@@ -162,7 +196,7 @@ export const CommentManager: React.FC = () => {
                   )}
                   {comment.status === 'rejected' && (
                     <button
-                      onClick={() => approveComment(comment.id)}
+                      onClick={() => handleApprove(comment.id)}
                       title="重新通过"
                       className="p-1.5 rounded-lg text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors"
                     >
@@ -171,7 +205,10 @@ export const CommentManager: React.FC = () => {
                   )}
                   {comment.status === 'approved' && (
                     <button
-                      onClick={() => rejectComment(comment.id)}
+                      onClick={() => {
+                        setRejectingCommentId(comment.id);
+                        setShowRejectModal(true);
+                      }}
                       title="撤回"
                       className="p-1.5 rounded-lg text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 transition-colors"
                     >
@@ -193,6 +230,62 @@ export const CommentManager: React.FC = () => {
           ))
         )}
       </div>
+
+      {/* 拒绝原因模态框 */}
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className={`rounded-xl shadow-xl max-w-md w-full p-6 ${
+            isDark ? 'bg-gray-900 border border-gray-700' : 'bg-white border border-gray-200'
+          }`}>
+            <div className="flex items-center gap-3 mb-4">
+              <AlertCircle className="w-6 h-6 text-red-500" />
+              <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                拒绝评论
+              </h3>
+            </div>
+
+            <div className="mb-4">
+              <label className={`block text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
+                请说明拒绝原因（可选）
+              </label>
+              <textarea
+                value={rejectReason}
+                onChange={e => setRejectReason(e.target.value.slice(0, 200))}
+                rows={3}
+                placeholder="例如：包含敏感词、违反社区规范等"
+                className={`w-full px-3 py-2 rounded-lg border resize-none text-sm focus:outline-none focus:ring-2 focus:ring-red-400 ${
+                  isDark
+                    ? 'bg-gray-800 border-gray-700 text-gray-200 placeholder-gray-500'
+                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                }`}
+              />
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setRejectReason('');
+                  setRejectingCommentId(null);
+                }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isDark
+                    ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                取消
+              </button>
+              <button
+                onClick={handleRejectWithReason}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+              >
+                确认拒绝
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

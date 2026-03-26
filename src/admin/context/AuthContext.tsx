@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
+  username: string | null;
   login: (username: string, password: string) => boolean;
   logout: () => void;
   changePassword: (currentPassword: string, newPassword: string) => { success: boolean; message: string };
@@ -35,33 +36,38 @@ interface SessionData {
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [username, setUsername] = useState<string | null>(null);
 
   // 从 localStorage 恢复会话
   const restoreSession = () => {
     try {
       const sessionJson = localStorage.getItem(SESSION_KEY);
       if (sessionJson) {
-        const session: SessionData = JSON.parse(sessionJson);
+        const session: SessionData & { username?: string } = JSON.parse(sessionJson);
         const now = Date.now();
         const sessionAge = now - session.loginTime;
 
         // 检查会话是否仍然有效（10 分钟内）
         if (session.isAuthenticated && sessionAge < SESSION_TIMEOUT) {
           setIsAuthenticated(true);
+          setUsername(session.username || 'admin');
           // 刷新登录时间戳（延长会话）
           updateSessionTimestamp();
         } else {
           // 会话已过期
           localStorage.removeItem(SESSION_KEY);
           setIsAuthenticated(false);
+          setUsername(null);
         }
       } else {
         setIsAuthenticated(false);
+        setUsername(null);
       }
     } catch (error) {
       console.error('Failed to restore session:', error);
       localStorage.removeItem(SESSION_KEY);
       setIsAuthenticated(false);
+      setUsername(null);
     } finally {
       setIsLoading(false);
     }
@@ -122,12 +128,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = (username: string, password: string): boolean => {
     if (username === 'admin' && password === getStoredPassword()) {
-      const session: SessionData = {
+      const session: SessionData & { username: string } = {
         isAuthenticated: true,
-        loginTime: Date.now()
+        loginTime: Date.now(),
+        username
       };
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
       setIsAuthenticated(true);
+      setUsername(username);
       return true;
     }
     return false;
@@ -151,10 +159,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = () => {
     localStorage.removeItem(SESSION_KEY);
     setIsAuthenticated(false);
+    setUsername(null);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout, changePassword }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, username, login, logout, changePassword }}>
       {children}
     </AuthContext.Provider>
   );
