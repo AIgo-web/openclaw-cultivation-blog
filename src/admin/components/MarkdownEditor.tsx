@@ -8,6 +8,7 @@ interface MarkdownEditorProps {
   onChange: (value: string | undefined) => void;
   height?: number;
   onImportMarkdown?: (content: string) => void;
+  htmlPreview?: string; // 可选的 HTML 预览内容
 }
 
 interface HistoryState {
@@ -15,14 +16,16 @@ interface HistoryState {
   timestamp: number;
 }
 
-export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ 
-  value, 
+export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
+  value,
   onChange,
   height = 400,
-  onImportMarkdown 
+  onImportMarkdown,
+  htmlPreview
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [markdown, setMarkdown] = useState(value);
   const [lastSaved, setLastSaved] = useState<string>('');
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -37,6 +40,13 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   useEffect(() => {
     setMarkdown(value);
   }, [value]);
+
+  // 当 htmlPreview 变化时，设置 iframe 内容
+  useEffect(() => {
+    if (htmlPreview && iframeRef.current) {
+      iframeRef.current.srcdoc = htmlPreview;
+    }
+  }, [htmlPreview]);
 
   // 添加到历史记录
   const addToHistory = useCallback((content: string) => {
@@ -399,31 +409,56 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         <div
           style={{
             flex: '1',
-            padding: '16px',
-            overflowY: 'auto',
+            overflow: 'hidden',
             backgroundColor: '#ffffff',
-            color: '#000000',
-            fontSize: '14px',
-            lineHeight: '1.6',
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
-          <ReactMarkdown
-            components={{
-              h1: (props) => <h1 style={{ color: '#000', marginTop: '1em', marginBottom: '0.5em', fontWeight: 'bold', fontSize: '1.6em' }} {...props} />,
-              h2: (props) => <h2 style={{ color: '#000', marginTop: '1em', marginBottom: '0.5em', fontWeight: 'bold', fontSize: '1.4em' }} {...props} />,
-              h3: (props) => <h3 style={{ color: '#000', marginTop: '1em', marginBottom: '0.5em', fontWeight: 'bold', fontSize: '1.2em' }} {...props} />,
-              p: (props) => <p style={{ color: '#000', marginBottom: '1em' }} {...props} />,
-              strong: (props) => <strong style={{ color: '#000', fontWeight: 'bold' }} {...props} />,
-              em: (props) => <em style={{ color: '#000', fontStyle: 'italic' }} {...props} />,
-              code: (props) => <code style={{ color: '#000', backgroundColor: '#f0f0f0', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }} {...props} />,
-              pre: (props) => <pre style={{ color: '#000', backgroundColor: '#f0f0f0', padding: '12px', borderRadius: '4px', overflowX: 'auto' }} {...props} />,
-              ul: (props) => <ul style={{ color: '#000', marginLeft: '1.5em', marginBottom: '1em' }} {...props} />,
-              ol: (props) => <ol style={{ color: '#000', marginLeft: '1.5em', marginBottom: '1em' }} {...props} />,
-              li: (props) => <li style={{ color: '#000', marginBottom: '0.5em' }} {...props} />,
-            }}
-          >
-            {markdown}
-          </ReactMarkdown>
+          {htmlPreview ? (
+            // HTML 预览
+            <iframe
+              ref={iframeRef}
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                display: 'block'
+              }}
+              sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+              title="HTML 预览"
+            />
+          ) : (
+            // Markdown 预览
+            <div
+              style={{
+                padding: '16px',
+                overflowY: 'auto',
+                color: '#000000',
+                fontSize: '14px',
+                lineHeight: '1.6',
+                height: '100%',
+              }}
+            >
+              <ReactMarkdown
+                components={{
+                  h1: (props) => <h1 style={{ color: '#000', marginTop: '1em', marginBottom: '0.5em', fontWeight: 'bold', fontSize: '1.6em' }} {...props} />,
+                  h2: (props) => <h2 style={{ color: '#000', marginTop: '1em', marginBottom: '0.5em', fontWeight: 'bold', fontSize: '1.4em' }} {...props} />,
+                  h3: (props) => <h3 style={{ color: '#000', marginTop: '1em', marginBottom: '0.5em', fontWeight: 'bold', fontSize: '1.2em' }} {...props} />,
+                  p: (props) => <p style={{ color: '#000', marginBottom: '1em' }} {...props} />,
+                  strong: (props) => <strong style={{ color: '#000', fontWeight: 'bold' }} {...props} />,
+                  em: (props) => <em style={{ color: '#000', fontStyle: 'italic' }} {...props} />,
+                  code: (props) => <code style={{ color: '#000', backgroundColor: '#f0f0f0', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }} {...props} />,
+                  pre: (props) => <pre style={{ color: '#000', backgroundColor: '#f0f0f0', padding: '12px', borderRadius: '4px', overflowX: 'auto' }} {...props} />,
+                  ul: (props) => <ul style={{ color: '#000', marginLeft: '1.5em', marginBottom: '1em' }} {...props} />,
+                  ol: (props) => <ol style={{ color: '#000', marginLeft: '1.5em', marginBottom: '1em' }} {...props} />,
+                  li: (props) => <li style={{ color: '#000', marginBottom: '0.5em' }} {...props} />,
+                }}
+              >
+                {markdown}
+              </ReactMarkdown>
+            </div>
+          )}
         </div>
       </div>
     </div>

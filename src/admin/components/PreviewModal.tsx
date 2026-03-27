@@ -9,10 +9,19 @@ interface PreviewModalProps {
   post: Partial<Post>;
   isOpen: boolean;
   onClose: () => void;
+  htmlContent?: string; // 新增：可选的 HTML 内容
 }
 
-export const PreviewModal: React.FC<PreviewModalProps> = ({ post, isOpen, onClose }) => {
+export const PreviewModal: React.FC<PreviewModalProps> = ({ post, isOpen, onClose, htmlContent }) => {
   const { isDark } = useDarkMode();
+  const iframeRef = React.useRef<HTMLIFrameElement>(null);
+
+  // 当组件打开或 htmlContent 变化时，设置 iframe 内容
+  React.useEffect(() => {
+    if (htmlContent && iframeRef.current && isOpen) {
+      iframeRef.current.srcdoc = htmlContent;
+    }
+  }, [htmlContent, isOpen]);
 
   if (!isOpen) return null;
 
@@ -102,52 +111,69 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ post, isOpen, onClos
             {/* 分隔线 */}
             <div className={`my-8 ${isDark ? 'border-gray-700' : 'border-gray-200'} border-t`} />
 
-            {/* Markdown 内容 */}
-            <div className={`prose ${isDark ? 'prose-invert' : ''} max-w-none`}>
-              <ReactMarkdown
-                components={{
-                  h1: (props) => <h1 className={`text-3xl font-bold mt-8 mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
-                  h2: (props) => <h2 className={`text-2xl font-bold mt-6 mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
-                  h3: (props) => <h3 className={`text-xl font-bold mt-4 mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
-                  p: (props) => <p className={`mb-4 leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-700'}`} {...props} />,
-                  strong: (props) => <strong className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
-                  em: (props) => <em className={`italic ${isDark ? 'text-gray-300' : 'text-gray-600'}`} {...props} />,
-                  code: (props) => (
-                    <code className={`px-2 py-1 rounded text-sm font-mono ${
-                      isDark 
-                        ? 'bg-gray-800 text-gray-300' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`} {...props} />
-                  ),
-                  pre: (props) => (
-                    <pre className={`p-4 rounded-lg overflow-x-auto mb-4 ${
-                      isDark 
-                        ? 'bg-gray-800 text-gray-300' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`} {...props} />
-                  ),
-                  ul: (props) => <ul className={`list-disc list-inside mb-4 space-y-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`} {...props} />,
-                  ol: (props) => <ol className={`list-decimal list-inside mb-4 space-y-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`} {...props} />,
-                  li: (props) => <li className="mb-2" {...props} />,
-                  blockquote: (props) => (
-                    <blockquote className={`border-l-4 pl-4 italic my-4 ${
-                      isDark 
-                        ? 'border-gray-600 text-gray-400' 
-                        : 'border-gray-300 text-gray-600'
-                    }`} {...props} />
-                  ),
-                  a: (props) => (
-                    <a className={`font-medium underline transition-colors ${
-                      isDark 
-                        ? 'text-lobster-400 hover:text-lobster-300' 
-                        : 'text-lobster-600 hover:text-lobster-700'
-                    }`} {...props} />
-                  ),
-                }}
-              >
-                {post.content || '（未填写内容）'}
-              </ReactMarkdown>
-            </div>
+            {/* 内容区：优先显示 HTML，否则显示 Markdown */}
+            {htmlContent ? (
+              <div className="w-full bg-white rounded-lg overflow-hidden border border-gray-200" style={{ maxWidth: '48rem' }}>
+                <iframe
+                  ref={iframeRef}
+                  style={{
+                    width: '100%',
+                    height: '70vh',
+                    border: 'none',
+                    display: 'block'
+                  }}
+                  sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+                  title="HTML 预览"
+                  className="w-full"
+                />
+              </div>
+            ) : (
+              <div className={`prose ${isDark ? 'prose-invert' : ''} max-w-none`}>
+                <ReactMarkdown
+                  components={{
+                    h1: (props) => <h1 className={`text-3xl font-bold mt-8 mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
+                    h2: (props) => <h2 className={`text-2xl font-bold mt-6 mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
+                    h3: (props) => <h3 className={`text-xl font-bold mt-4 mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
+                    p: (props) => <p className={`mb-4 leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-700'}`} {...props} />,
+                    strong: (props) => <strong className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`} {...props} />,
+                    em: (props) => <em className={`italic ${isDark ? 'text-gray-300' : 'text-gray-600'}`} {...props} />,
+                    code: (props) => (
+                      <code className={`px-2 py-1 rounded text-sm font-mono ${
+                        isDark
+                          ? 'bg-gray-800 text-gray-300'
+                          : 'bg-gray-100 text-gray-800'
+                      }`} {...props} />
+                    ),
+                    pre: (props) => (
+                      <pre className={`p-4 rounded-lg overflow-x-auto mb-4 ${
+                        isDark
+                          ? 'bg-gray-800 text-gray-300'
+                          : 'bg-gray-100 text-gray-800'
+                      }`} {...props} />
+                    ),
+                    ul: (props) => <ul className={`list-disc list-inside mb-4 space-y-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`} {...props} />,
+                    ol: (props) => <ol className={`list-decimal list-inside mb-4 space-y-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`} {...props} />,
+                    li: (props) => <li className="mb-2" {...props} />,
+                    blockquote: (props) => (
+                      <blockquote className={`border-l-4 pl-4 italic my-4 ${
+                        isDark
+                          ? 'border-gray-600 text-gray-400'
+                          : 'border-gray-300 text-gray-600'
+                      }`} {...props} />
+                    ),
+                    a: (props) => (
+                      <a className={`font-medium underline transition-colors ${
+                        isDark
+                          ? 'text-lobster-400 hover:text-lobster-300'
+                          : 'text-lobster-600 hover:text-lobster-700'
+                      }`} {...props} />
+                    ),
+                  }}
+                >
+                  {post.content || '（未填写内容）'}
+                </ReactMarkdown>
+              </div>
+            )}
           </div>
         </div>
       </div>

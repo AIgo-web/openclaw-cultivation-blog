@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Eye, AlertCircle, Trash2, Github, Loader2, CheckCircle, XCircle, ExternalLink, Image, Upload, X, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Save, Eye, AlertCircle, Trash2, Github, Loader2, CheckCircle, XCircle, ExternalLink, Image, Upload, X, MessageSquare, FileDown, RotateCcw, Eraser } from 'lucide-react';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { MarkdownEditor } from '../components/MarkdownEditor';
 import { EditorSkeleton } from '../components/EditorSkeleton';
@@ -36,6 +36,11 @@ export const PostEditor: React.FC = () => {
   const [isLoading, setIsLoading] = useState(isEditing);
   const [showPreview, setShowPreview] = useState(false);
 
+  // HTML 导入相关状态
+  const [importedHtml, setImportedHtml] = useState('');
+  const [originalContent, setOriginalContent] = useState('');
+  const htmlInputRef = useRef<HTMLInputElement>(null);
+
   // GitHub 发布状态
   const [ghPublishing, setGhPublishing] = useState(false);
   const [ghResult, setGhResult] = useState<{ success: boolean; message: string; commitUrl?: string } | null>(null);
@@ -63,6 +68,11 @@ export const PostEditor: React.FC = () => {
     // 检查是否有保存的草稿
     const draft = localStorage.getItem('markdown-draft');
     setHasDraft(!!draft);
+
+    // 保存初始内容用于还原
+    if (!isEditing && !originalContent) {
+      setOriginalContent(content);
+    }
 
     if (isEditing) {
       // 模拟加载延迟
@@ -99,6 +109,94 @@ export const PostEditor: React.FC = () => {
   const handleClearDraft = () => {
     localStorage.removeItem('markdown-draft');
     setHasDraft(false);
+  };
+
+  // 导入 HTML 文件
+  const handleImportHtml = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === 'text/html') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const htmlContent = e.target?.result as string;
+
+        // 提取 HTML 的 body 内容
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlContent, 'text/html');
+        const bodyContent = doc.body.innerHTML;
+
+        // 提取标题
+        const titleEl = doc.querySelector('title, h1');
+        if (titleEl && !title) {
+          setTitle(titleEl.textContent || '');
+        }
+
+        // 提取 head 中的样式（如果有）
+        const headContent = Array.from(doc.head.querySelectorAll('style, link[rel="stylesheet"]'))
+          .map(el => el.outerHTML)
+          .join('\n');
+
+        // 构建完整的 HTML 用于预览（包含样式）
+        const fullHtml = `
+          <!DOCTYPE html>
+          <html lang="zh-CN">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            ${headContent}
+            <style>
+              * { box-sizing: border-box; }
+              body { margin: 0; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+              img { max-width: 100%; height: auto; }
+            </style>
+          </head>
+          <body>
+            ${bodyContent}
+          </body>
+          </html>
+        `;
+
+        // 保存当前内容为原始内容（如果还没有保存过）
+        if (!originalContent) {
+          setOriginalContent(content);
+        }
+
+        // 将 HTML 内容插入到编辑器中
+        setContent(bodyContent);
+        setImportedHtml(fullHtml);
+      };
+      reader.readAsText(file);
+    } else {
+      alert('请选择 HTML 文件');
+    }
+    // 清空 input 以便可以再次选择同一文件
+    event.target.value = '';
+  };
+
+  // 清空所有内容
+  const handleClearAll = () => {
+    if (window.confirm('确定要清空所有内容吗？此操作不可恢复。')) {
+      setTitle('');
+      setSummary('');
+      setContent('');
+      setSelectedTags([]);
+      setSelectedCategory('tech');
+      setPostStatus('published');
+      setPublishDate(new Date().toISOString().split('T')[0]);
+      setRelatedPostIds([]);
+      setCoverImage('');
+      setOriginalContent('');
+      setImportedHtml('');
+    }
+  };
+
+  // 还原到初始状态
+  const handleRestoreOriginal = () => {
+    if (originalContent) {
+      setContent(originalContent);
+      alert('内容已还原到初始状态');
+    } else {
+      alert('没有可还原的初始内容');
+    }
   };
 
   const handleSave = () => {
@@ -305,8 +403,8 @@ export const PostEditor: React.FC = () => {
             <button
               onClick={() => setShowPreview(true)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 border ${
-                isDark 
-                  ? 'border-gray-700 text-gray-300 hover:bg-gray-800' 
+                isDark
+                  ? 'border-gray-700 text-gray-300 hover:bg-gray-800'
                   : 'border-gray-300 text-gray-700 hover:bg-gray-100'
               }`}
             >
@@ -750,11 +848,63 @@ export const PostEditor: React.FC = () => {
           ${isDark ? 'bg-gray-900' : 'bg-white'}
           border border-gray-200 dark:border-gray-800
         `}>
-          <label className={`block text-sm font-medium mb-2 ${
-            isDark ? 'text-gray-300' : 'text-gray-700'
-          }`}>
-            文章内容(Markdown)
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className={`block text-sm font-medium ${
+              isDark ? 'text-gray-300' : 'text-gray-700'
+            }`}>
+              文章内容(Markdown)
+            </label>
+            <div className="flex items-center gap-2">
+              {/* 导入 HTML */}
+              <input
+                ref={htmlInputRef}
+                type="file"
+                accept=".html"
+                className="hidden"
+                onChange={handleImportHtml}
+              />
+              <button
+                onClick={() => htmlInputRef.current?.click()}
+                className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors flex items-center gap-1.5 border ${
+                  isDark
+                    ? 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                }`}
+                title="导入 HTML 文件"
+              >
+                <FileDown className="w-4 h-4" />
+                导入 HTML
+              </button>
+
+              {/* 清空内容 */}
+              <button
+                onClick={handleClearAll}
+                className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors flex items-center gap-1.5 border ${
+                  isDark
+                    ? 'border-red-700 text-red-300 hover:bg-red-900/50'
+                    : 'border-red-300 text-red-700 hover:bg-red-50'
+                }`}
+                title="清空所有内容"
+              >
+                <Eraser className="w-4 h-4" />
+                清空
+              </button>
+
+              {/* 还原内容 */}
+              <button
+                onClick={handleRestoreOriginal}
+                className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors flex items-center gap-1.5 border ${
+                  isDark
+                    ? 'border-blue-700 text-blue-300 hover:bg-blue-900/50'
+                    : 'border-blue-300 text-blue-700 hover:bg-blue-50'
+                }`}
+                title="还原到初始状态"
+              >
+                <RotateCcw className="w-4 h-4" />
+                还原
+              </button>
+            </div>
+          </div>
 
           {/* 草稿恢复提示 */}
           {hasDraft && (
@@ -790,11 +940,14 @@ export const PostEditor: React.FC = () => {
             </div>
           )}
 
-          <MarkdownEditor
-            value={content}
-            onChange={(val) => setContent(val || '')}
-            height={500}
-          />
+          <div className="w-full max-w-5xl mx-auto">
+            <MarkdownEditor
+              value={content}
+              onChange={(val) => setContent(val || '')}
+              height={500}
+              htmlPreview={importedHtml || undefined}
+            />
+          </div>
 
           {/* 字数统计 */}
           {content && (() => {
@@ -890,6 +1043,7 @@ export const PostEditor: React.FC = () => {
         }}
         isOpen={showPreview}
         onClose={() => setShowPreview(false)}
+        htmlContent={importedHtml || undefined}
       />
     </div>
   );
