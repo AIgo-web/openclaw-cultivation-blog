@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, Eye, BarChart2, Award, FileText } from 'lucide-react';
+import { TrendingUp, Eye, BarChart2, Award, FileText, Home } from 'lucide-react';
 import { usePosts } from '../../contexts/PostsContext';
 import { useViews } from '../../contexts/ViewsContext';
 import { useDarkMode } from '../../hooks/useDarkMode';
@@ -30,16 +30,35 @@ export const Analytics: React.FC = () => {
 
   const cardClass = `rounded-xl p-5 shadow-sm border ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`;
 
+  const handleOpenHome = () => {
+    const homeUrl = window.location.origin;
+    window.open(homeUrl, 'blog-home', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className={`text-3xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-          访问统计
-        </h1>
-        <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-          了解文章的阅读情况和热门内容
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className={`text-3xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            访问统计
+          </h1>
+          <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+            了解文章的阅读情况和热门内容
+          </p>
+        </div>
+        <button
+          onClick={handleOpenHome}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 border ${
+            isDark
+              ? 'border-gray-700 text-gray-300 hover:bg-gray-800'
+              : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+          }`}
+          title="在新窗口中打开博客首页"
+        >
+          <Home className="w-5 h-5" />
+          首页
+        </button>
       </div>
 
       {/* Overview Stats */}

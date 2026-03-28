@@ -8,6 +8,7 @@ export default function Navbar() {
 
   const navItems = [
     { to: '/', label: '首页' },
+    { to: '/series', label: '专题' },
     { to: '/tags', label: '标签' },
     { to: '/about', label: '关于' },
   ];

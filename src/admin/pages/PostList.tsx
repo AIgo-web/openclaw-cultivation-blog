@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Search, CheckSquare, Square, Minus, Download, Upload, ArrowUpDown } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, CheckSquare, Square, Minus, Download, Upload, ArrowUpDown, Home } from 'lucide-react';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { usePosts } from '../../contexts/PostsContext';
 import { exportPosts } from '../../utils/exportPost';
@@ -73,6 +73,11 @@ export const PostList: React.FC = () => {
     if (selectedIds.size === 0) return;
     const toExport = posts.filter(p => selectedIds.has(p.id));
     exportPosts(toExport);
+  };
+
+  const handleOpenHome = () => {
+    const homeUrl = window.location.origin;
+    window.open(homeUrl, 'blog-home', 'width=1200,height=800,scrollbars=yes,resizable=yes');
   };
 
   /** 解析 Markdown 文件，提取 frontmatter 或使用文件名 */
@@ -173,6 +178,18 @@ export const PostList: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleOpenHome}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 border ${
+              isDark
+                ? 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+            }`}
+            title="在新窗口中打开博客首页"
+          >
+            <Home className="w-5 h-5" />
+            首页
+          </button>
           <button
             onClick={() => importRef.current?.click()}
             className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 border ${

@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Eye, AlertCircle, Trash2, Github, Loader2, CheckCircle, XCircle, ExternalLink, Image, Upload, X, MessageSquare, FileDown, RotateCcw, Eraser } from 'lucide-react';
+import { ArrowLeft, Save, Eye, Home, AlertCircle, Trash2, Github, Loader2, CheckCircle, XCircle, ExternalLink, Image, Upload, X, MessageSquare, FileDown, RotateCcw, Eraser } from 'lucide-react';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { MarkdownEditor } from '../components/MarkdownEditor';
 import { EditorSkeleton } from '../components/EditorSkeleton';
-import { PreviewModal } from '../components/PreviewModal';
 import { usePosts } from '../../contexts/PostsContext';
-import { tags } from '../../data/tags';
+import { tags, addTag, deleteTag, getTagColor } from '../../data/tags';
 import { categories } from '../../data/categories';
 import type { Post } from '../../types';
 import { loadGitHubConfig, publishToGitHub, uploadImageToGitHub } from '../../services/githubService';
 import { getWeChatAccounts, publishToWeChat, type WeChatAccount } from '../../services/wechatService';
+import { useSeries } from '../../contexts/SeriesContext';
 
 export const PostEditor: React.FC = () => {
   const { isDark } = useDarkMode();
@@ -18,7 +18,7 @@ export const PostEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const isEditing = id !== undefined && id !== 'new';
   const { posts, addPost, updatePost } = usePosts();
-
+  const { seriesList, updateSeries } = useSeries();
 
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
@@ -29,17 +29,21 @@ export const PostEditor: React.FC = () => {
   const [publishDate, setPublishDate] = useState(new Date().toISOString().split('T')[0]);
   const [relatedPostIds, setRelatedPostIds] = useState<string[]>([]);
   const [coverImage, setCoverImage] = useState('');
+  const [selectedSeriesId, setSelectedSeriesId] = useState<string>('');
   const [imageUploading, setImageUploading] = useState(false);
   const [imageError, setImageError] = useState('');
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [hasDraft, setHasDraft] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditing);
-  const [showPreview, setShowPreview] = useState(false);
 
   // HTML 导入相关状态
   const [importedHtml, setImportedHtml] = useState('');
   const [originalContent, setOriginalContent] = useState('');
   const htmlInputRef = useRef<HTMLInputElement>(null);
+
+  // 新建标签相关状态
+  const [newTagName, setNewTagName] = useState('');
+  const [showAddTag, setShowAddTag] = useState(false);
 
   // GitHub 发布状态
   const [ghPublishing, setGhPublishing] = useState(false);
@@ -88,6 +92,23 @@ export const PostEditor: React.FC = () => {
           setPublishDate(post.date);
           setRelatedPostIds(post.relatedPostIds || []);
           setCoverImage(post.coverImage || '');
+          setSelectedSeriesId(post.seriesId || '');
+
+
+
+
+
+          // 检测内容是否是完整的 HTML 文档
+          const contentHtml = post.content || '';
+          const isFullHtmlDocument = /<!DOCTYPE|<html/i.test(contentHtml);
+
+          if (isFullHtmlDocument) {
+            // 如果是完整的 HTML 文档，直接用于预览
+            setImportedHtml(contentHtml);
+          } else {
+            // 否则清空 importedHtml，使用 Markdown 预览
+            setImportedHtml('');
+          }
         }
         setIsLoading(false);
       }, 300); // 300ms 加载动画
@@ -111,6 +132,36 @@ export const PostEditor: React.FC = () => {
     setHasDraft(false);
   };
 
+  /**
+   * 从段落标题中提炼摘要
+   */
+  const extractSummaryFromHeadings = (doc: Document): string => {
+    // 提取所有标题（h1-h6）
+    const headings = Array.from(doc.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+
+    if (headings.length === 0) return '';
+
+    // 收集标题文本
+    const headingTexts = headings
+      .map(h => h.textContent?.trim())
+      .filter((text): text is string => !!text && text.length > 0);
+
+    if (headingTexts.length === 0) return '';
+
+    // 策略1：如果有多个标题，取前3个标题组合
+    if (headingTexts.length >= 3) {
+      return headingTexts.slice(0, 3).join(' · ');
+    }
+
+    // 策略2：如果有2个标题，组合它们
+    if (headingTexts.length === 2) {
+      return headingTexts.join(' · ');
+    }
+
+    // 策略3：只有1个标题，使用它
+    return headingTexts[0];
+  };
+
   // 导入 HTML 文件
   const handleImportHtml = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -128,6 +179,12 @@ export const PostEditor: React.FC = () => {
         const titleEl = doc.querySelector('title, h1');
         if (titleEl && !title) {
           setTitle(titleEl.textContent || '');
+        }
+
+        // 提炼摘要：从段落标题中提炼
+        const summaryFromHeadings = extractSummaryFromHeadings(doc);
+        if (summaryFromHeadings && !summary) {
+          setSummary(summaryFromHeadings);
         }
 
         // 提取 head 中的样式（如果有）
@@ -160,8 +217,9 @@ export const PostEditor: React.FC = () => {
           setOriginalContent(content);
         }
 
-        // 将 HTML 内容插入到编辑器中
-        setContent(bodyContent);
+        // 将完整的 HTML 文档插入到编辑器中（包含 head 样式）
+        // 注意：这样保存的是完整的 HTML 文档，而不仅仅是 body 片段
+        setContent(fullHtml);
         setImportedHtml(fullHtml);
       };
       reader.readAsText(file);
@@ -205,8 +263,9 @@ export const PostEditor: React.FC = () => {
       return;
     }
 
+    const postId = isEditing ? id! : `post-${Date.now()}`;
     const newPost: Post = {
-      id: isEditing ? id! : `post-${Date.now()}`,
+      id: postId,
       title: title.trim(),
       summary: summary.trim(),
       content: content.trim(),
@@ -217,7 +276,36 @@ export const PostEditor: React.FC = () => {
       readTime: Math.ceil(content.split(/\s+/).length / 200),
       relatedPostIds: relatedPostIds.length > 0 ? relatedPostIds : undefined,
       coverImage: coverImage.trim() || undefined,
+      seriesId: selectedSeriesId || undefined,
     };
+
+    // 处理专题关联变化
+    if (isEditing) {
+      const oldPost = posts.find(p => p.id === id);
+      const oldSeriesId = oldPost?.seriesId;
+      // 如果专题变更，先从旧专题移除
+      if (oldSeriesId && oldSeriesId !== selectedSeriesId) {
+        const oldSeries = seriesList.find(s => s.id === oldSeriesId);
+        if (oldSeries) {
+          const newPostIds = oldSeries.postIds.filter(pid => pid !== id);
+          updateSeries(oldSeriesId, { ...oldSeries, postIds: newPostIds, updatedAt: new Date().toISOString() });
+        }
+      }
+    }
+    // 如果选择了专题且文章不在该专题中，添加进去
+    if (selectedSeriesId) {
+      const series = seriesList.find(s => s.id === selectedSeriesId);
+      if (series && !series.postIds.includes(postId)) {
+        const newPostIds = [...series.postIds, postId];
+        const order = newPostIds.length;
+        newPost.seriesOrder = order;
+        updateSeries(selectedSeriesId, { ...series, postIds: newPostIds, updatedAt: new Date().toISOString() });
+      } else if (series) {
+        // 已在专题中，保留 seriesOrder
+        const existingPost = posts.find(p => p.id === postId);
+        newPost.seriesOrder = existingPost?.seriesOrder;
+      }
+    }
 
     if (isEditing) {
       if (!id) {
@@ -311,11 +399,39 @@ export const PostEditor: React.FC = () => {
   };
 
   const toggleTag = (tag: string) => {
-    setSelectedTags(prev =>
-      prev.includes(tag)
+    setSelectedTags(prev => {
+      const isSelected = prev.includes(tag);
+      return isSelected
         ? prev.filter(t => t !== tag)
-        : [...prev, tag]
-    );
+        : [...prev, tag];
+    });
+  };
+
+  // 添加新标签
+  const handleAddNewTag = () => {
+    const trimmedName = newTagName.trim();
+    if (!trimmedName) {
+      alert('请输入标签名称');
+      return;
+    }
+
+    // 检查是否已存在
+    const existing = tags.find(t => t.name === trimmedName);
+    if (existing) {
+      alert('标签已存在');
+      setNewTagName('');
+      return;
+    }
+
+    // 添加新标签
+    const newTag = addTag(trimmedName);
+    if (newTag) {
+      // 自动选中新添加的标签
+      setSelectedTags(prev => [...prev, newTag.name]);
+      setNewTagName('');
+      setShowAddTag(false);
+      alert(`标签「${newTag.name}」添加成功`);
+    }
   };
 
   /** 同步到微信公众号 */
@@ -370,6 +486,39 @@ export const PostEditor: React.FC = () => {
     }
   };
 
+  /** 打开预览新窗口 */
+  const handlePreview = () => {
+    if (!title.trim() || !summary.trim() || !content.trim()) {
+      alert('请先填写完整的标题、摘要和内容才能预览');
+      return;
+    }
+
+    // 将当前编辑的数据保存到 sessionStorage
+    const previewData = {
+      title: title.trim(),
+      summary: summary.trim(),
+      content: content.trim(),
+      tags: selectedTags,
+      date: publishDate,
+      category: selectedCategory,
+      readTime: Math.ceil(content.split(/\s+/).length / 200),
+      coverImage: coverImage.trim() || undefined,
+      coverColor: categories.find(c => c.id === selectedCategory)?.color || 'from-lobster-400 to-orange-400'
+    };
+
+    sessionStorage.setItem('post-preview', JSON.stringify(previewData));
+
+    // 打开新窗口
+    const previewUrl = window.location.origin + '/admin/preview';
+    window.open(previewUrl, 'post-preview', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+  };
+
+  /** 打开首页 */
+  const handleOpenHome = () => {
+    const homeUrl = window.location.origin;
+    window.open(homeUrl, 'blog-home', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -401,12 +550,25 @@ export const PostEditor: React.FC = () => {
         {!isLoading && (
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setShowPreview(true)}
+              onClick={handleOpenHome}
               className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 border ${
                 isDark
                   ? 'border-gray-700 text-gray-300 hover:bg-gray-800'
                   : 'border-gray-300 text-gray-700 hover:bg-gray-100'
               }`}
+              title="在新窗口中打开博客首页"
+            >
+              <Home className="w-5 h-5" />
+              首页
+            </button>
+            <button
+              onClick={handlePreview}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 border ${
+                isDark
+                  ? 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+              }`}
+              title="在新窗口中预览文章"
             >
               <Eye className="w-5 h-5" />
               预览
@@ -709,6 +871,45 @@ export const PostEditor: React.FC = () => {
           </p>
         </div>
 
+        {/* Series Selection */}
+        <div className={`
+          p-6 rounded-lg
+          ${isDark ? 'bg-gray-900' : 'bg-white'}
+          border border-gray-200 dark:border-gray-800
+        `}>
+          <label className={`block text-sm font-medium mb-3 ${
+            isDark ? 'text-gray-300' : 'text-gray-700'
+          }`}>
+            所属专题 <span className={`text-xs font-normal ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>（可选）</span>
+          </label>
+          <select
+            value={selectedSeriesId}
+            onChange={(e) => setSelectedSeriesId(e.target.value)}
+            className={`
+              w-full px-4 py-2 rounded-lg border
+              ${isDark 
+                ? 'bg-gray-800 border-gray-700 text-white' 
+                : 'bg-white border-gray-300 text-gray-900'
+              } focus:outline-none focus:ring-2 focus:ring-lobster-500
+            `}
+          >
+            <option value="">不属于任何专题</option>
+            {seriesList.map(s => (
+              <option key={s.id} value={s.id}>{s.icon || '📚'} {s.title}</option>
+            ))}
+          </select>
+          {selectedSeriesId && (
+            <p className={`text-xs mt-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+              {seriesList.find(s => s.id === selectedSeriesId)?.description || ''}
+            </p>
+          )}
+          {seriesList.length === 0 && (
+            <p className={`text-xs mt-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+              还没有专题，可先去 <button onClick={() => navigate('/admin/series')} className="text-lobster-500 hover:underline">专题管理</button> 创建
+            </p>
+          )}
+        </div>
+
         {/* Publish Date */}
         <div className={`
           p-6 rounded-lg
@@ -748,11 +949,65 @@ export const PostEditor: React.FC = () => {
           ${isDark ? 'bg-gray-900' : 'bg-white'}
           border border-gray-200 dark:border-gray-800
         `}>
-          <label className={`block text-sm font-medium mb-3 ${
-            isDark ? 'text-gray-300' : 'text-gray-700'
-          }`}>
-            选择标签
-          </label>
+          <div className="flex items-center justify-between mb-3">
+            <label className={`block text-sm font-medium ${
+              isDark ? 'text-gray-300' : 'text-gray-700'
+            }`}>
+              选择标签
+            </label>
+            {!showAddTag && (
+              <button
+                onClick={() => setShowAddTag(true)}
+                className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${
+                  isDark
+                    ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                + 新建标签
+              </button>
+            )}
+          </div>
+
+          {/* 新建标签输入框 */}
+          {showAddTag && (
+            <div className={`mb-3 p-3 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-50'}`}>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  placeholder="输入标签名称..."
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddNewTag()}
+                  className={`flex-1 px-3 py-1.5 rounded text-sm border ${
+                    isDark
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                  } focus:outline-none focus:ring-2 focus:ring-lobster-500`}
+                />
+                <button
+                  onClick={handleAddNewTag}
+                  className="px-3 py-1.5 bg-lobster-500 hover:bg-lobster-600 text-white rounded text-sm font-medium transition-colors"
+                >
+                  添加
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddTag(false);
+                    setNewTagName('');
+                  }}
+                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                    isDark
+                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
             {tags.map((tag) => (
               <button
@@ -769,6 +1024,11 @@ export const PostEditor: React.FC = () => {
                 {tag.name}
               </button>
             ))}
+            {tags.length === 0 && (
+              <p className={`text-sm py-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                暂无标签，点击上方"新建标签"添加
+              </p>
+            )}
           </div>
         </div>
 
@@ -945,8 +1205,13 @@ export const PostEditor: React.FC = () => {
               value={content}
               onChange={(val) => setContent(val || '')}
               height={500}
-              htmlPreview={importedHtml || undefined}
+              htmlPreview={importedHtml && importedHtml.length > 0 ? importedHtml : undefined}
             />
+            {importedHtml && importedHtml.length > 0 && (
+              <div className="text-xs text-gray-500 mt-2">
+                📄 HTML 预览模式 ({importedHtml.length} 字符)
+              </div>
+            )}
           </div>
 
           {/* 字数统计 */}
@@ -1032,19 +1297,6 @@ export const PostEditor: React.FC = () => {
           </button>
         </div>
       )}
-      <PreviewModal
-        post={{
-          title,
-          summary,
-          content,
-          tags: selectedTags,
-          date: publishDate,
-          readTime: Math.ceil(content.split(/\s+/).length / 200)
-        }}
-        isOpen={showPreview}
-        onClose={() => setShowPreview(false)}
-        htmlContent={importedHtml || undefined}
-      />
     </div>
   );
 };

@@ -7,6 +7,8 @@ import HomePage from './pages/HomePage';
 import PostDetailPage from './pages/PostDetailPage';
 import TagsPage from './pages/TagsPage';
 import AboutPage from './pages/AboutPage';
+import SeriesPage from './pages/SeriesPage';
+import SeriesDetailPage from './pages/SeriesDetailPage';
 import { AdminLayout } from './admin/layout/AdminLayout';
 import { LoginPage } from './admin/pages/LoginPage';
 import { AuthProvider } from './admin/context/AuthContext';
@@ -17,6 +19,7 @@ import { SearchProvider } from './contexts/SearchContext';
 import { PostsProvider } from './contexts/PostsContext';
 import { CommentsProvider } from './contexts/CommentsContext';
 import { ViewsProvider } from './contexts/ViewsContext';
+import { SeriesProvider } from './contexts/SeriesContext';
 import { useSearchShortcut } from './hooks/useSearchShortcut';
 import { injectStructuredData, generateSiteNavigationSchema } from './services/seoService';
 import { Dashboard } from './admin/pages/Dashboard';
@@ -24,10 +27,12 @@ import { Dashboard } from './admin/pages/Dashboard';
 // ✅ 代码分割：懒加载管理后台页面（使用命名导出）
 const PostList = lazy(() => import('./admin/pages/PostList').then(m => ({ default: m.PostList })));
 const PostEditor = lazy(() => import('./admin/pages/PostEditor').then(m => ({ default: m.PostEditor })));
+const PostPreview = lazy(() => import('./admin/pages/PostPreviewPage').then(m => ({ default: m.default })));
 const TagManager = lazy(() => import('./admin/pages/TagManager').then(m => ({ default: m.TagManager })));
 const Settings = lazy(() => import('./admin/pages/Settings').then(m => ({ default: m.default })));
 const CommentManager = lazy(() => import('./admin/pages/CommentManager').then(m => ({ default: m.CommentManager })));
 const Analytics = lazy(() => import('./admin/pages/Analytics').then(m => ({ default: m.Analytics })));
+const SeriesManager = lazy(() => import('./admin/pages/SeriesManager').then(m => ({ default: m.SeriesManager })));
 
 // ✅ 加载骨架屏组件
 const PageSkeleton = () => (
@@ -68,6 +73,7 @@ export default function App() {
         <PostsProvider>
           <CommentsProvider>
             <ViewsProvider>
+              <SeriesProvider>
               <ToastProvider>
                 <SearchProvider>
                   <SEOInitializer />
@@ -87,6 +93,9 @@ export default function App() {
                       <Route path="/admin/posts/edit/:id" element={
                         <Suspense fallback={<PageSkeleton />}><PostEditor /></Suspense>
                       } />
+                      <Route path="/admin/preview" element={
+                        <Suspense fallback={<PageSkeleton />}><PostPreview /></Suspense>
+                      } />
                       <Route path="/admin/tags" element={
                         <Suspense fallback={<PageSkeleton />}><TagManager /></Suspense>
                       } />
@@ -98,6 +107,9 @@ export default function App() {
                       } />
                       <Route path="/admin/analytics" element={
                         <Suspense fallback={<PageSkeleton />}><Analytics /></Suspense>
+                      } />
+                      <Route path="/admin/series" element={
+                        <Suspense fallback={<PageSkeleton />}><SeriesManager /></Suspense>
                       } />
                     </Route>
 
@@ -112,6 +124,8 @@ export default function App() {
                               <Route path="/" element={<HomePage />} />
                               <Route path="/post/:id" element={<PostDetailPage />} />
                               <Route path="/tags" element={<TagsPage />} />
+                              <Route path="/series" element={<SeriesPage />} />
+                              <Route path="/series/:id" element={<SeriesDetailPage />} />
                               <Route path="/about" element={<AboutPage />} />
                             </Routes>
                           </div>
@@ -122,6 +136,7 @@ export default function App() {
                   </Routes>
                 </SearchProvider>
               </ToastProvider>
+              </SeriesProvider>
             </ViewsProvider>
           </CommentsProvider>
         </PostsProvider>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Tags, MessageSquare, TrendingUp } from 'lucide-react';
+import { FileText, Tags, MessageSquare, TrendingUp, Home } from 'lucide-react';
 import { StatCard } from '../components/StatCard';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { usePosts } from '../../contexts/PostsContext';
@@ -17,6 +17,11 @@ export const Dashboard: React.FC = () => {
 
   const totalViews = getTotalViews();
   const approvedComments = comments.filter(c => c.status === 'approved').length;
+
+  const handleOpenHome = () => {
+    const homeUrl = window.location.origin;
+    window.open(homeUrl, 'blog-home', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+  };
 
   const stats = [
     {
@@ -56,17 +61,31 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className={`text-3xl font-bold ${
-          isDark ? 'text-white' : 'text-gray-900'
-        } mb-2`}>
-          仪表板
-        </h1>
-        <p className={`text-lg ${
-          isDark ? 'text-gray-400' : 'text-gray-600'
-        }`}>
-          欢迎回来，查看博客的整体数据概览
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className={`text-3xl font-bold ${
+            isDark ? 'text-white' : 'text-gray-900'
+          } mb-2`}>
+            仪表板
+          </h1>
+          <p className={`text-lg ${
+            isDark ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            欢迎回来，查看博客的整体数据概览
+          </p>
+        </div>
+        <button
+          onClick={handleOpenHome}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 border ${
+            isDark
+              ? 'border-gray-700 text-gray-300 hover:bg-gray-800'
+              : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+          }`}
+          title="在新窗口中打开博客首页"
+        >
+          <Home className="w-5 h-5" />
+          首页
+        </button>
       </div>
 
       {/* Stats */}

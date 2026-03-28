@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { Eye, Download } from 'lucide-react';
 import { usePosts } from '../contexts/PostsContext';
 import { useViews } from '../contexts/ViewsContext';
+import { useSeries } from '../contexts/SeriesContext';
 import { getCategoryIcon, getCategoryName } from '../data/categories';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { TableOfContents } from '../components/TableOfContents';
@@ -21,10 +22,27 @@ export default function PostDetailPage() {
   const [readProgress, setReadProgress] = useState(0);
   const { posts } = usePosts();
   const { getViews, incrementViews } = useViews();
+  const { seriesList } = useSeries();
   const post = posts.find(p => p.id === id);
   const currentIndex = posts.findIndex(p => p.id === id);
   const prevPost = currentIndex > 0 ? posts[currentIndex - 1] : null;
   const nextPost = currentIndex < posts.length - 1 ? posts[currentIndex + 1] : null;
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // 所属专题
+  const currentSeries = post?.seriesId ? seriesList.find(s => s.id === post.seriesId) : null;
+  // 专题中的有序文章列表（只显示已发布）
+  const seriesPosts = currentSeries
+    ? currentSeries.postIds
+        .map(pid => posts.find(p => p.id === pid))
+        .filter((p): p is NonNullable<typeof p> => !!p && p.status !== 'draft')
+    : [];
+  const seriesCurrentIndex = seriesPosts.findIndex(p => p.id === id);
+  const seriesPrevPost = seriesCurrentIndex > 0 ? seriesPosts[seriesCurrentIndex - 1] : null;
+  const seriesNextPost = seriesCurrentIndex < seriesPosts.length - 1 ? seriesPosts[seriesCurrentIndex + 1] : null;
+
+  // 检测内容是否是完整的 HTML 文档
+  const isFullHtmlDocument = post ? /<!DOCTYPE|<html/i.test(post.content) : false;
 
   // 自动计数浏览量
   useEffect(() => {
@@ -108,6 +126,14 @@ export default function PostDetailPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // 将 HTML 内容加载到 iframe 中
+  useEffect(() => {
+    if (iframeRef.current && post && isFullHtmlDocument) {
+      const iframe = iframeRef.current;
+      iframe.srcdoc = post.content;
+    }
+  }, [post, isFullHtmlDocument]);
+
   if (!post) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center">
@@ -159,12 +185,23 @@ export default function PostDetailPage() {
             <div className={`h-1.5 rounded-full bg-gradient-to-r ${post.coverColor || 'from-lobster-400 to-orange-400'} mb-5`} />
           )}
 
-          {/* Tags + Category */}
+          {/* Tags + Category + Series */}
           <div className="flex flex-wrap gap-2 mb-4">
             {post.category && (
               <span className="px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200">
                 {getCategoryIcon(post.category)} {getCategoryName(post.category)}
               </span>
+            )}
+            {currentSeries && (
+              <Link
+                to={`/series/${currentSeries.id}`}
+                className="px-3 py-1 rounded-full text-sm font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300 hover:opacity-80 transition-opacity"
+              >
+                {currentSeries.icon || '📚'} {currentSeries.title}
+                {seriesPosts.length > 0 && (
+                  <span className="ml-1 opacity-70">({seriesCurrentIndex + 1}/{seriesPosts.length})</span>
+                )}
+              </Link>
             )}
             {post.tags.map(tag => (
               <Link
@@ -209,13 +246,24 @@ export default function PostDetailPage() {
         </header>
 
         {/* 手机端 TOC（内联，在文章内容上方） */}
-        <div className="lg:hidden mb-6">
-          <TableOfContents content={post.content} activeHeading={activeHeading} />
-        </div>
+        {isFullHtmlDocument ? null : (
+          <div className="lg:hidden mb-6">
+            <TableOfContents content={post.content} activeHeading={activeHeading} />
+          </div>
+        )}
 
         {/* Article content */}
         <article className="mb-10">
-          <MarkdownRenderer content={post.content} />
+          {isFullHtmlDocument ? (
+            <iframe
+              ref={iframeRef}
+              title="HTML Content"
+              className="w-full border-0"
+              style={{ minHeight: '600px' }}
+            />
+          ) : (
+            <MarkdownRenderer content={post.content} />
+          )}
         </article>
 
         {/* Share + Export */}
@@ -245,6 +293,67 @@ export default function PostDetailPage() {
 
         {/* Comment Section */}
         {id && <CommentSection postId={id} />}
+
+        {/* 所属专题信息 */}
+        {currentSeries && (
+          <section className="border-t border-gray-200 dark:border-gray-800 pt-8 mb-8">
+            {/* 专题头部 */}
+            <Link
+              to={`/series/${currentSeries.id}`}
+              className="flex items-start gap-4 p-5 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 hover:shadow-md transition-all group mb-4"
+            >
+              <span className="text-3xl flex-shrink-0">{currentSeries.icon || '📚'}</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-1 flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                  本文属于专题系列 · 第 {seriesCurrentIndex + 1} / {seriesPosts.length} 篇
+                </div>
+                <h3 className="text-base font-bold text-amber-900 dark:text-amber-200 group-hover:text-amber-600 dark:group-hover:text-amber-300 transition-colors mb-1 truncate">
+                  {currentSeries.title}
+                </h3>
+                <p className="text-sm text-amber-700 dark:text-amber-400/80 line-clamp-2">
+                  {currentSeries.description}
+                </p>
+              </div>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-amber-500 group-hover:translate-x-1 transition-transform mt-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </Link>
+
+            {/* 专题内上下篇 */}
+            {(seriesPrevPost || seriesNextPost) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {seriesPrevPost ? (
+                  <Link
+                    to={`/post/${seriesPrevPost.id}`}
+                    className="card p-4 hover:shadow-md hover:-translate-y-0.5 group transition-all border border-amber-200/60 dark:border-amber-800/30"
+                  >
+                    <div className="text-xs text-amber-500 dark:text-amber-400 mb-1 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                      专题上一篇
+                    </div>
+                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors line-clamp-2">
+                      {seriesPrevPost.title}
+                    </div>
+                  </Link>
+                ) : <div className="hidden sm:block" />}
+
+                {seriesNextPost ? (
+                  <Link
+                    to={`/post/${seriesNextPost.id}`}
+                    className="card p-4 hover:shadow-md hover:-translate-y-0.5 group transition-all border border-amber-200/60 dark:border-amber-800/30 sm:text-right"
+                  >
+                    <div className="text-xs text-amber-500 dark:text-amber-400 mb-1 flex items-center gap-1 sm:justify-end">
+                      专题下一篇
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    </div>
+                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors line-clamp-2">
+                      {seriesNextPost.title}
+                    </div>
+                  </Link>
+                ) : <div className="hidden sm:block" />}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Related Posts */}
         {(() => {
@@ -345,9 +454,11 @@ export default function PostDetailPage() {
       </main>
 
       {/* TOC Sidebar（桌面端固定侧边栏） */}
-      <aside className="hidden lg:block flex-shrink-0">
-        <TableOfContents content={post.content} activeHeading={activeHeading} />
-      </aside>
+      {isFullHtmlDocument ? null : (
+        <aside className="hidden lg:block flex-shrink-0">
+          <TableOfContents content={post.content} activeHeading={activeHeading} />
+        </aside>
+      )}
     </div>
   );
 }

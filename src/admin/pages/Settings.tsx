@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, Lock, Eye, EyeOff, CheckCircle, XCircle, Github, Loader2, Trash2, MessageSquare, Plus, Database, Download, Upload, Image, X } from 'lucide-react';
+import { Save, Lock, Eye, EyeOff, CheckCircle, XCircle, Github, Loader2, Trash2, MessageSquare, Plus, Database, Download, Upload, Image, X, Home } from 'lucide-react';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { useAuth } from '../context/AuthContext';
 import { usePosts } from '../../contexts/PostsContext';
@@ -40,6 +40,11 @@ export const Settings: React.FC = () => {
   const { posts, addPost, updatePost } = usePosts();
   const { comments } = useComments();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleOpenHome = () => {
+    const homeUrl = window.location.origin;
+    window.open(homeUrl, 'blog-home', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+  };
 
   const [settings, setSettings] = useState<BlogSettings>({
     title: 'OpenClaw 龙虾养成计划',
@@ -283,9 +288,23 @@ export const Settings: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>设置</h1>
-        <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>配置博客基本信息和数据管理</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>设置</h1>
+          <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>配置博客基本信息和数据管理</p>
+        </div>
+        <button
+          onClick={handleOpenHome}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 border ${
+            isDark
+              ? 'border-gray-700 text-gray-300 hover:bg-gray-800'
+              : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+          }`}
+          title="在新窗口中打开博客首页"
+        >
+          <Home className="w-5 h-5" />
+          首页
+        </button>
       </div>
 
       <div className="space-y-6">

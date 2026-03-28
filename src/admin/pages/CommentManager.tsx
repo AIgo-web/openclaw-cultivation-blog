@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { MessageSquare, CheckCircle, XCircle, Trash2, Filter, User, AlertCircle } from 'lucide-react';
+import { MessageSquare, CheckCircle, XCircle, Trash2, Filter, User, AlertCircle, Home } from 'lucide-react';
 import { useComments } from '../../contexts/CommentsContext';
 import { usePosts } from '../../contexts/PostsContext';
 import { useAuth } from '../context/AuthContext';
@@ -51,6 +51,11 @@ export const CommentManager: React.FC = () => {
     approveComment(id, username || 'admin');
   };
 
+  const handleOpenHome = () => {
+    const homeUrl = window.location.origin;
+    window.open(homeUrl, 'blog-home', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+  };
+
   const filterBtnClass = (f: FilterType) =>
     `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
       filter === f
@@ -63,13 +68,27 @@ export const CommentManager: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className={`text-3xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-          评论管理
-        </h1>
-        <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-          审核和管理读者留下的评论
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className={`text-3xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            评论管理
+          </h1>
+          <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            审核和管理读者留下的评论
+          </p>
+        </div>
+        <button
+          onClick={handleOpenHome}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 border ${
+            isDark
+              ? 'border-gray-700 text-gray-300 hover:bg-gray-800'
+              : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+          }`}
+          title="在新窗口中打开博客首页"
+        >
+          <Home className="w-5 h-5" />
+          首页
+        </button>
       </div>
 
       {/* Stats */}

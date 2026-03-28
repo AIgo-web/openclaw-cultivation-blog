@@ -9,7 +9,8 @@ import {
   Menu,
   X,
   MessageSquare,
-  BarChart2
+  BarChart2,
+  Library
 } from 'lucide-react';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { useAuth } from '../context/AuthContext';
@@ -22,6 +23,7 @@ interface AdminLayoutProps {
 const menuItems = [
   { icon: LayoutDashboard, label: '仪表盘', path: '/admin' },
   { icon: FileText, label: '文章管理', path: '/admin/posts' },
+  { icon: Library, label: '专题管理', path: '/admin/series' },
   { icon: MessageSquare, label: '评论管理', path: '/admin/comments' },
   { icon: BarChart2, label: '访问统计', path: '/admin/analytics' },
   { icon: Tags, label: '标签管理', path: '/admin/tags' },

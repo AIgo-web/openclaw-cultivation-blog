@@ -4,6 +4,7 @@ import { usePosts } from '../contexts/PostsContext';
 import { tags, getTagColor } from '../data/tags';
 import { categories } from '../data/categories';
 import { Link } from 'react-router-dom';
+import HotSeriesWidget from '../components/HotSeriesWidget';
 
 const PAGE_SIZE = 6;
 
@@ -34,7 +35,7 @@ export default function HomePage() {
   };
 
   return (
-    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
       {/* Hero */}
       <section className="mb-8 sm:mb-12 text-center">
         <div className="inline-flex items-center gap-3 mb-3">
@@ -63,111 +64,124 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Category filter */}
-      <section className="mb-8">
-        <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-sm text-gray-500 dark:text-gray-400 mr-1">分类：</span>
-          <button
-            onClick={() => handleCategoryChange(null)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-              selectedCategory === null
-                ? 'bg-lobster-500 text-white shadow-md'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
-          >
-            全部
-          </button>
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => handleCategoryChange(selectedCategory === cat.id ? null : cat.id)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                selectedCategory === cat.id
-                  ? 'ring-2 ring-offset-1 ring-lobster-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
-            >
-              {cat.icon} {cat.name}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Tag filter */}
-      <section className="mb-8">
-        <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-sm text-gray-500 dark:text-gray-400 mr-1">筛选：</span>
-          <button
-            onClick={() => handleTagChange(null)}
-            className={`tag-badge transition-all ${
-              selectedTag === null
-                ? 'bg-lobster-500 text-white shadow-md'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
-          >
-            全部
-          </button>
-          {tags.slice(0, 8).map(tag => (
-            <button
-              key={tag.name}
-              onClick={() => handleTagChange(selectedTag === tag.name ? null : tag.name)}
-              className={`tag-badge ${
-                selectedTag === tag.name
-                  ? 'ring-2 ring-lobster-400 ' + getTagColor(tag.name)
-                  : getTagColor(tag.name)
-              }`}
-            >
-              {tag.name}
-              <span className="opacity-60">({tag.count})</span>
-            </button>
-          ))}
-          <Link
-            to="/tags"
-            className="text-sm text-lobster-500 hover:text-lobster-700 dark:text-lobster-400 ml-1"
-          >
-            查看全部 →
-          </Link>
-        </div>
-      </section>
-
-      {/* Post list */}
-      <section>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-            {selectedCategory || selectedTag 
-              ? `${selectedCategory ? categories.find(c => c.id === selectedCategory)?.name + ' · ' : ''}${selectedTag ? `「${selectedTag}」相关` : ''}文章`
-              : '全部文章'}
-            <span className="text-sm font-normal text-gray-400 dark:text-gray-500 ml-2">
-              共 {filteredPosts.length} 篇
-            </span>
-          </h2>
-        </div>
-
-        {visiblePosts.length > 0 ? (
-          <>
-            <div className="grid gap-5">
-              {visiblePosts.map(post => (
-                <PostCard key={post.id} post={post} />
+      {/* Two-column layout */}
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        {/* ── Left: main content ── */}
+        <main className="flex-1 min-w-0">
+          {/* Category filter */}
+          <section className="mb-8">
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-sm text-gray-500 dark:text-gray-400 mr-1">分类：</span>
+              <button
+                onClick={() => handleCategoryChange(null)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                  selectedCategory === null
+                    ? 'bg-lobster-500 text-white shadow-md'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                全部
+              </button>
+              {categories.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategoryChange(selectedCategory === cat.id ? null : cat.id)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                    selectedCategory === cat.id
+                      ? 'ring-2 ring-offset-1 ring-lobster-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {cat.icon} {cat.name}
+                </button>
               ))}
             </div>
-            {hasMore && (
-              <div className="text-center mt-8">
+          </section>
+
+          {/* Tag filter */}
+          <section className="mb-8">
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-sm text-gray-500 dark:text-gray-400 mr-1">筛选：</span>
+              <button
+                onClick={() => handleTagChange(null)}
+                className={`tag-badge transition-all ${
+                  selectedTag === null
+                    ? 'bg-lobster-500 text-white shadow-md'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                全部
+              </button>
+              {tags.slice(0, 8).map(tag => (
                 <button
-                  onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
-                  className="px-6 py-2.5 rounded-full border border-lobster-300 text-lobster-500 hover:bg-lobster-50 dark:border-lobster-700 dark:text-lobster-400 dark:hover:bg-lobster-900/20 text-sm font-medium transition-colors"
+                  key={tag.name}
+                  onClick={() => handleTagChange(selectedTag === tag.name ? null : tag.name)}
+                  className={`tag-badge ${
+                    selectedTag === tag.name
+                      ? 'ring-2 ring-lobster-400 ' + getTagColor(tag.name)
+                      : getTagColor(tag.name)
+                  }`}
                 >
-                  加载更多 ({filteredPosts.length - visibleCount} 篇)
+                  {tag.name}
+                  <span className="opacity-60">({tag.count})</span>
                 </button>
+              ))}
+              <Link
+                to="/tags"
+                className="text-sm text-lobster-500 hover:text-lobster-700 dark:text-lobster-400 ml-1"
+              >
+                查看全部 →
+              </Link>
+            </div>
+          </section>
+
+          {/* Post list */}
+          <section>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                {selectedCategory || selectedTag
+                  ? `${selectedCategory ? categories.find(c => c.id === selectedCategory)?.name + ' · ' : ''}${selectedTag ? `「${selectedTag}」相关` : ''}文章`
+                  : '全部文章'}
+                <span className="text-sm font-normal text-gray-400 dark:text-gray-500 ml-2">
+                  共 {filteredPosts.length} 篇
+                </span>
+              </h2>
+            </div>
+
+            {visiblePosts.length > 0 ? (
+              <>
+                <div className="grid gap-5">
+                  {visiblePosts.map(post => (
+                    <PostCard key={post.id} post={post} />
+                  ))}
+                </div>
+                {hasMore && (
+                  <div className="text-center mt-8">
+                    <button
+                      onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+                      className="px-6 py-2.5 rounded-full border border-lobster-300 text-lobster-500 hover:bg-lobster-50 dark:border-lobster-700 dark:text-lobster-400 dark:hover:bg-lobster-900/20 text-sm font-medium transition-colors"
+                    >
+                      加载更多 ({filteredPosts.length - visibleCount} 篇)
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-16">
+                <span className="text-4xl">🦞</span>
+                <p className="text-gray-400 dark:text-gray-500 mt-4">暂无相关文章</p>
               </div>
             )}
-          </>
-        ) : (
-          <div className="text-center py-16">
-            <span className="text-4xl">🦞</span>
-            <p className="text-gray-400 dark:text-gray-500 mt-4">暂无相关文章</p>
+          </section>
+        </main>
+
+        {/* ── Right: sticky sidebar ── */}
+        <aside className="w-full lg:w-64 xl:w-72 flex-shrink-0 lg:sticky lg:top-20 self-start">
+          <div className="bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 backdrop-blur-sm">
+            <HotSeriesWidget />
           </div>
-        )}
-      </section>
-    </main>
+        </aside>
+      </div>
+    </div>
   );
 }
