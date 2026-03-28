@@ -58,6 +58,26 @@ export interface SeriesTool {
   isFree?: boolean;
 }
 
+/** 自定义主题分区（手动添加的额外主题） */
+export interface SeriesSection {
+  id: string;
+  title: string;            // 主题标题（黑体展示）
+  description?: string;     // 主题说明
+  icon?: string;            // emoji 图标
+  items: SeriesSectionItem[];
+}
+
+/** 自定义主题分区内的条目 */
+export interface SeriesSectionItem {
+  id: string;
+  name: string;
+  description?: string;
+  url?: string;             // 可选链接
+  badge?: string;           // 标签/徽章文字
+  badgeColor?: string;      // 'green' | 'blue' | 'red' | 'orange' | 'gray'
+  extra?: string;           // 附加信息（如版本、大小等）
+}
+
 export interface Series {
   id: string;
   title: string;
@@ -69,11 +89,13 @@ export interface Series {
   postIds: string[];        // 专题内文章 ID 列表（有序）
   status: 'published' | 'draft';
   icon?: string;            // emoji 图标
-  // 四大资源分区
+  // 四大固定资源分区
   reports?: SeriesReport[];
   materials?: SeriesMaterial[];
   platforms?: SeriesPlatform[];
   tools?: SeriesTool[];
+  // 自定义主题分区（可手动添加）
+  sections?: SeriesSection[];
 }
 
 export interface Tag {

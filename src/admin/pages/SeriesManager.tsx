@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import {
   Plus, Trash2, Edit2, X, Check, GripVertical, BookOpen,
-  Eye, EyeOff, FileText, FolderOpen, Globe, Wrench, Link2,
+  Eye, EyeOff, FileText, FolderOpen, Globe, Wrench, Link2, Layers,
 } from 'lucide-react';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { useSeries } from '../../contexts/SeriesContext';
 import { usePosts } from '../../contexts/PostsContext';
-import type { Series, SeriesReport, SeriesMaterial, SeriesPlatform, SeriesTool } from '../../types';
+import type { Series, SeriesReport, SeriesMaterial, SeriesPlatform, SeriesTool, SeriesSection, SeriesSectionItem } from '../../types';
 
 const COVER_COLORS = [
   'from-lobster-400 to-lobster-600',
@@ -44,7 +44,7 @@ function newId() {
 
 // ─── 资源Tab编辑面板 ──────────────────────────────────────────────────────────
 
-type ResTab = 'reports' | 'materials' | 'platforms' | 'tools';
+type ResTab = 'reports' | 'materials' | 'platforms' | 'tools' | 'sections';
 
 interface ResourceManagerProps {
   series: Series;
@@ -52,6 +52,207 @@ interface ResourceManagerProps {
   onClose: () => void;
   isDark: boolean;
   inputCls: string;
+}
+
+// ─── 自定义主题分区编辑器 ─────────────────────────────────────────────────────
+
+function SectionsEditor({
+  isDark, inputCls, sections, onChange,
+}: {
+  isDark: boolean;
+  inputCls: string;
+  sections: SeriesSection[];
+  onChange: (s: SeriesSection[]) => void;
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [newSectionTitle, setNewSectionTitle] = useState('');
+  const [newSectionIcon, setNewSectionIcon] = useState('📌');
+  const [newSectionDesc, setNewSectionDesc] = useState('');
+
+  // 新增主题
+  const handleAddSection = () => {
+    if (!newSectionTitle.trim()) return;
+    const s: SeriesSection = {
+      id: `sec-${Date.now()}`,
+      title: newSectionTitle.trim(),
+      icon: newSectionIcon || '📌',
+      description: newSectionDesc.trim() || undefined,
+      items: [],
+    };
+    onChange([...sections, s]);
+    setNewSectionTitle('');
+    setNewSectionDesc('');
+    setNewSectionIcon('📌');
+    setEditingId(s.id); // 自动展开新分区
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* 新增分区表单 */}
+      <div className={`rounded-xl border p-4 space-y-3 ${isDark ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>
+        <p className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>新增自定义主题</p>
+        <div className="grid grid-cols-3 gap-2">
+          <input className={inputCls} placeholder="图标 Emoji" value={newSectionIcon} onChange={e => setNewSectionIcon(e.target.value)} />
+          <input className={`${inputCls} col-span-2`} placeholder="主题标题 *" value={newSectionTitle} onChange={e => setNewSectionTitle(e.target.value)} />
+        </div>
+        <input className={inputCls} placeholder="主题说明（可选）" value={newSectionDesc} onChange={e => setNewSectionDesc(e.target.value)} />
+        <button
+          onClick={handleAddSection}
+          disabled={!newSectionTitle.trim()}
+          className="w-full py-2 bg-lobster-500 hover:bg-lobster-600 disabled:opacity-40 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-colors"
+        >
+          <Plus className="w-4 h-4" /> 创建主题分区
+        </button>
+      </div>
+
+      {/* 已有分区列表 */}
+      {sections.length === 0 ? (
+        <p className={`text-center text-sm py-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          暂无自定义主题，从上方创建第一个
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {sections.map(sec => (
+            <SectionItemEditor
+              key={sec.id}
+              section={sec}
+              isDark={isDark}
+              inputCls={inputCls}
+              isExpanded={editingId === sec.id}
+              onToggle={() => setEditingId(editingId === sec.id ? null : sec.id)}
+              onDelete={() => onChange(sections.filter(s => s.id !== sec.id))}
+              onUpdate={updated => onChange(sections.map(s => s.id === updated.id ? updated : s))}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SectionItemEditor({
+  section, isDark, inputCls, isExpanded, onToggle, onDelete, onUpdate,
+}: {
+  section: SeriesSection;
+  isDark: boolean;
+  inputCls: string;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onDelete: () => void;
+  onUpdate: (s: SeriesSection) => void;
+}) {
+  const [newItem, setNewItem] = useState<Omit<SeriesSectionItem, 'id'>>({
+    name: '', description: '', url: '', badge: '', badgeColor: 'gray', extra: '',
+  });
+
+  const handleAddItem = () => {
+    if (!newItem.name.trim()) return;
+    const item: SeriesSectionItem = {
+      id: `item-${Date.now()}`,
+      name: newItem.name.trim(),
+      description: newItem.description?.trim() || undefined,
+      url: newItem.url?.trim() || undefined,
+      badge: newItem.badge?.trim() || undefined,
+      badgeColor: newItem.badge?.trim() ? (newItem.badgeColor || 'gray') : undefined,
+      extra: newItem.extra?.trim() || undefined,
+    };
+    onUpdate({ ...section, items: [...section.items, item] });
+    setNewItem({ name: '', description: '', url: '', badge: '', badgeColor: 'gray', extra: '' });
+  };
+
+  return (
+    <div className={`rounded-xl border overflow-hidden ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+      {/* 分区头 */}
+      <div
+        onClick={onToggle}
+        className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
+          isDark ? 'bg-gray-800 hover:bg-gray-700/80' : 'bg-gray-50 hover:bg-gray-100'
+        }`}
+      >
+        <span className="text-lg flex-shrink-0">{section.icon || '📌'}</span>
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm font-bold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{section.title}</p>
+          {section.description && (
+            <p className={`text-xs truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{section.description}</p>
+          )}
+        </div>
+        <span className={`text-xs px-2 py-0.5 rounded-full ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>
+          {section.items.length} 项
+        </span>
+        <button
+          onClick={e => { e.stopPropagation(); onDelete(); }}
+          className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+        <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{isExpanded ? '▲' : '▼'}</span>
+      </div>
+
+      {/* 展开内容 */}
+      {isExpanded && (
+        <div className={`p-4 space-y-3 border-t ${isDark ? 'border-gray-700 bg-gray-900/50' : 'border-gray-100 bg-white'}`}>
+          {/* 新增条目表单 */}
+          <div className={`rounded-lg border p-3 space-y-2 ${isDark ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>
+            <p className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>添加条目</p>
+            <input className={inputCls} placeholder="条目名称 *" value={newItem.name} onChange={e => setNewItem(v => ({ ...v, name: e.target.value }))} />
+            <input className={inputCls} placeholder="链接（可选，支持网盘链接）" value={newItem.url} onChange={e => setNewItem(v => ({ ...v, url: e.target.value }))} />
+            <div className="grid grid-cols-2 gap-2">
+              <input className={inputCls} placeholder="徽章文字（可选）" value={newItem.badge} onChange={e => setNewItem(v => ({ ...v, badge: e.target.value }))} />
+              <select className={inputCls} value={newItem.badgeColor} onChange={e => setNewItem(v => ({ ...v, badgeColor: e.target.value }))}>
+                <option value="gray">灰色</option>
+                <option value="green">绿色（免费/推荐）</option>
+                <option value="blue">蓝色（信息）</option>
+                <option value="red">红色（重要）</option>
+                <option value="orange">橙色（付费）</option>
+                <option value="purple">紫色</option>
+                <option value="amber">琥珀</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <input className={inputCls} placeholder="附加信息（如版本/大小）" value={newItem.extra} onChange={e => setNewItem(v => ({ ...v, extra: e.target.value }))} />
+              <input className={inputCls} placeholder="简短说明（可选）" value={newItem.description} onChange={e => setNewItem(v => ({ ...v, description: e.target.value }))} />
+            </div>
+            <button
+              onClick={handleAddItem}
+              disabled={!newItem.name.trim()}
+              className="w-full py-1.5 bg-lobster-500 hover:bg-lobster-600 disabled:opacity-40 text-white rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" /> 添加条目
+            </button>
+          </div>
+
+          {/* 条目列表 */}
+          {section.items.length === 0 ? (
+            <p className={`text-center text-xs py-3 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>暂无条目</p>
+          ) : (
+            <div className="space-y-1.5">
+              {section.items.map(item => (
+                <div key={item.id} className={`flex items-center gap-2 p-2.5 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-50'}`}>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{item.name}</p>
+                    {(item.description || item.url) && (
+                      <p className="text-xs text-gray-400 truncate">{item.url || item.description}</p>
+                    )}
+                  </div>
+                  {item.badge && (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex-shrink-0">
+                      {item.badge}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => onUpdate({ ...section, items: section.items.filter(i => i.id !== item.id) })}
+                    className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** 单行文件资源表单（报告 / 资料） */
@@ -128,16 +329,18 @@ function ResourceManager({ series, onSave, onClose, isDark, inputCls }: Resource
   const [materials, setMaterials] = useState<SeriesMaterial[]>(series.materials || []);
   const [platforms, setPlatforms] = useState<SeriesPlatform[]>(series.platforms || []);
   const [tools, setTools] = useState<SeriesTool[]>(series.tools || []);
+  const [sections, setSections] = useState<SeriesSection[]>(series.sections || []);
 
   const handleSave = () => {
-    onSave({ ...series, reports, materials, platforms, tools, updatedAt: new Date().toISOString() });
+    onSave({ ...series, reports, materials, platforms, tools, sections, updatedAt: new Date().toISOString() });
   };
 
   const RES_TABS: { key: ResTab; label: string; icon: React.ReactNode; count: number }[] = [
-    { key: 'reports', label: '报告文件', icon: <FileText className="w-4 h-4" />, count: reports.length },
+    { key: 'reports',   label: '报告文件', icon: <FileText  className="w-4 h-4" />, count: reports.length   },
     { key: 'materials', label: '资料资质', icon: <FolderOpen className="w-4 h-4" />, count: materials.length },
-    { key: 'platforms', label: '平台网址', icon: <Globe className="w-4 h-4" />, count: platforms.length },
-    { key: 'tools', label: '工具软件', icon: <Wrench className="w-4 h-4" />, count: tools.length },
+    { key: 'platforms', label: '平台网址', icon: <Globe     className="w-4 h-4" />, count: platforms.length },
+    { key: 'tools',     label: '工具软件', icon: <Wrench    className="w-4 h-4" />, count: tools.length     },
+    { key: 'sections',  label: '自定义主题', icon: <Layers  className="w-4 h-4" />, count: sections.reduce((n, s) => n + s.items.length, 0) },
   ];
 
   return (
@@ -312,6 +515,16 @@ function ResourceManager({ series, onSave, onClose, isDark, inputCls }: Resource
               )}
               {tools.length === 0 && <p className={`text-center text-sm py-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>暂无工具，从上方添加</p>}
             </>
+          )}
+
+          {/* ── 自定义主题分区 ── */}
+          {tab === 'sections' && (
+            <SectionsEditor
+              isDark={isDark}
+              inputCls={inputCls}
+              sections={sections}
+              onChange={setSections}
+            />
           )}
         </div>
 
