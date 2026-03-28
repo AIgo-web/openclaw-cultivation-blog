@@ -129,7 +129,6 @@ function EmptyHint({ icon, text }: { icon: string; text: string }) {
 // ─── 固定分区：报告文件 ───────────────────────────────────────────────────────
 
 function ReportsSection({ reports }: { reports: SeriesReport[] }) {
-  if (!reports || reports.length === 0) return null;
   return (
     <section className="mb-10">
       <SectionHeader
@@ -139,39 +138,43 @@ function ReportsSection({ reports }: { reports: SeriesReport[] }) {
         count={reports.length}
         accent="red"
       />
-      <div className="space-y-3">
-        {reports.map(r => (
-          <a
-            key={r.id}
-            href={r.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex items-start gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1d27] hover:border-lobster-300 dark:hover:border-lobster-700 hover:shadow-md transition-all"
-          >
-            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
-              {fileTypeIcon(r.type)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className="font-semibold text-gray-900 dark:text-white group-hover:text-lobster-500 transition-colors">
-                  {r.title}
-                </span>
-                <span className={`text-xs px-1.5 py-0.5 rounded font-medium uppercase ${fileTypeBadge(r.type)}`}>
-                  {r.type}
-                </span>
-                {r.size && <span className="text-xs text-gray-400 dark:text-gray-500">{r.size}</span>}
+      {reports.length === 0 ? (
+        <EmptyHint icon="📄" text="暂无报告文件，可在后台「资源 → 报告文件」中添加" />
+      ) : (
+        <div className="space-y-3">
+          {reports.map(r => (
+            <a
+              key={r.id}
+              href={r.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-start gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1d27] hover:border-lobster-300 dark:hover:border-lobster-700 hover:shadow-md transition-all"
+            >
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
+                {fileTypeIcon(r.type)}
               </div>
-              {r.description && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{r.description}</p>
-              )}
-            </div>
-            <div className="flex-shrink-0 flex items-center gap-1 text-xs text-gray-400 group-hover:text-lobster-500 transition-colors pt-0.5">
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">查看/下载</span>
-            </div>
-          </a>
-        ))}
-      </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <span className="font-semibold text-gray-900 dark:text-white group-hover:text-lobster-500 transition-colors">
+                    {r.title}
+                  </span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded font-medium uppercase ${fileTypeBadge(r.type)}`}>
+                    {r.type}
+                  </span>
+                  {r.size && <span className="text-xs text-gray-400 dark:text-gray-500">{r.size}</span>}
+                </div>
+                {r.description && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{r.description}</p>
+                )}
+              </div>
+              <div className="flex-shrink-0 flex items-center gap-1 text-xs text-gray-400 group-hover:text-lobster-500 transition-colors pt-0.5">
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">查看/下载</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -179,7 +182,6 @@ function ReportsSection({ reports }: { reports: SeriesReport[] }) {
 // ─── 固定分区：资料与资质 ─────────────────────────────────────────────────────
 
 function MaterialsSection({ materials }: { materials: SeriesMaterial[] }) {
-  if (!materials || materials.length === 0) return null;
   return (
     <section className="mb-10">
       <SectionHeader
@@ -189,39 +191,43 @@ function MaterialsSection({ materials }: { materials: SeriesMaterial[] }) {
         count={materials.length}
         accent="blue"
       />
-      <div className="space-y-3">
-        {materials.map(m => (
-          <a
-            key={m.id}
-            href={m.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex items-start gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1d27] hover:border-lobster-300 dark:hover:border-lobster-700 hover:shadow-md transition-all"
-          >
-            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
-              {fileTypeIcon(m.type)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className="font-semibold text-gray-900 dark:text-white group-hover:text-lobster-500 transition-colors">
-                  {m.title}
-                </span>
-                <span className={`text-xs px-1.5 py-0.5 rounded font-medium uppercase ${fileTypeBadge(m.type)}`}>
-                  {m.type}
-                </span>
-                {m.size && <span className="text-xs text-gray-400 dark:text-gray-500">{m.size}</span>}
+      {materials.length === 0 ? (
+        <EmptyHint icon="🗂️" text="暂无资料资质，可在后台「资源 → 资料资质」中添加" />
+      ) : (
+        <div className="space-y-3">
+          {materials.map(m => (
+            <a
+              key={m.id}
+              href={m.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-start gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1d27] hover:border-lobster-300 dark:hover:border-lobster-700 hover:shadow-md transition-all"
+            >
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
+                {fileTypeIcon(m.type)}
               </div>
-              {m.description && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{m.description}</p>
-              )}
-            </div>
-            <div className="flex-shrink-0 flex items-center gap-1 text-xs text-gray-400 group-hover:text-lobster-500 transition-colors pt-0.5">
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">下载</span>
-            </div>
-          </a>
-        ))}
-      </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <span className="font-semibold text-gray-900 dark:text-white group-hover:text-lobster-500 transition-colors">
+                    {m.title}
+                  </span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded font-medium uppercase ${fileTypeBadge(m.type)}`}>
+                    {m.type}
+                  </span>
+                  {m.size && <span className="text-xs text-gray-400 dark:text-gray-500">{m.size}</span>}
+                </div>
+                {m.description && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{m.description}</p>
+                )}
+              </div>
+              <div className="flex-shrink-0 flex items-center gap-1 text-xs text-gray-400 group-hover:text-lobster-500 transition-colors pt-0.5">
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">下载</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -229,8 +235,6 @@ function MaterialsSection({ materials }: { materials: SeriesMaterial[] }) {
 // ─── 固定分区：平台网址 ───────────────────────────────────────────────────────
 
 function PlatformsSection({ platforms }: { platforms: SeriesPlatform[] }) {
-  if (!platforms || platforms.length === 0) return null;
-
   const grouped: Record<string, SeriesPlatform[]> = {};
   platforms.forEach(p => {
     const cat = p.category || '平台列表';
@@ -248,43 +252,47 @@ function PlatformsSection({ platforms }: { platforms: SeriesPlatform[] }) {
         count={platforms.length}
         accent="green"
       />
-      <div className="space-y-6">
-        {categories.map(cat => (
-          <div key={cat}>
-            {categories.length > 1 && (
-              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                <span className="w-3 h-px bg-gray-300 dark:bg-gray-700 inline-block rounded" />
-                {cat}
-                <span className="w-3 h-px bg-gray-300 dark:bg-gray-700 inline-block rounded" />
-              </p>
-            )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {grouped[cat].map(p => (
-                <a
-                  key={p.id}
-                  href={p.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1d27] hover:border-lobster-300 dark:hover:border-lobster-700 hover:shadow-md transition-all"
-                >
-                  <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-xl">
-                    {p.icon || '🔗'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 dark:text-white group-hover:text-lobster-500 transition-colors truncate">
-                      {p.name}
-                    </p>
-                    {p.description && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{p.description}</p>
-                    )}
-                  </div>
-                  <ExternalLink className="flex-shrink-0 w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-lobster-400 transition-colors" />
-                </a>
-              ))}
+      {platforms.length === 0 ? (
+        <EmptyHint icon="🌐" text="暂无平台网址，可在后台「资源 → 平台网址」中添加" />
+      ) : (
+        <div className="space-y-6">
+          {categories.map(cat => (
+            <div key={cat}>
+              {categories.length > 1 && (
+                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <span className="w-3 h-px bg-gray-300 dark:bg-gray-700 inline-block rounded" />
+                  {cat}
+                  <span className="w-3 h-px bg-gray-300 dark:bg-gray-700 inline-block rounded" />
+                </p>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {grouped[cat].map(p => (
+                  <a
+                    key={p.id}
+                    href={p.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1d27] hover:border-lobster-300 dark:hover:border-lobster-700 hover:shadow-md transition-all"
+                  >
+                    <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-xl">
+                      {p.icon || '🔗'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 dark:text-white group-hover:text-lobster-500 transition-colors truncate">
+                        {p.name}
+                      </p>
+                      {p.description && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{p.description}</p>
+                      )}
+                    </div>
+                    <ExternalLink className="flex-shrink-0 w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-lobster-400 transition-colors" />
+                  </a>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -292,7 +300,6 @@ function PlatformsSection({ platforms }: { platforms: SeriesPlatform[] }) {
 // ─── 固定分区：工具软件 ───────────────────────────────────────────────────────
 
 function ToolsSection({ tools }: { tools: SeriesTool[] }) {
-  if (!tools || tools.length === 0) return null;
   return (
     <section className="mb-10">
       <SectionHeader
@@ -302,53 +309,57 @@ function ToolsSection({ tools }: { tools: SeriesTool[] }) {
         count={tools.length}
         accent="amber"
       />
-      <div className="space-y-3">
-        {tools.map(t => (
-          <a
-            key={t.id}
-            href={t.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex items-start gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1d27] hover:border-lobster-300 dark:hover:border-lobster-700 hover:shadow-md transition-all"
-          >
-            <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-2xl">
-              {t.icon || '⚙️'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className="font-semibold text-gray-900 dark:text-white group-hover:text-lobster-500 transition-colors">
-                  {t.name}
-                </span>
-                {t.version && (
-                  <span className="text-xs text-gray-400 dark:text-gray-500">v{t.version}</span>
-                )}
-                {t.isFree !== undefined && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                    t.isFree
-                      ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
-                      : 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
-                  }`}>
-                    {t.isFree ? '免费' : '付费'}
+      {tools.length === 0 ? (
+        <EmptyHint icon="🔧" text="暂无工具软件，可在后台「资源 → 工具软件」中添加" />
+      ) : (
+        <div className="space-y-3">
+          {tools.map(t => (
+            <a
+              key={t.id}
+              href={t.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-start gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1d27] hover:border-lobster-300 dark:hover:border-lobster-700 hover:shadow-md transition-all"
+            >
+              <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-2xl">
+                {t.icon || '⚙️'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <span className="font-semibold text-gray-900 dark:text-white group-hover:text-lobster-500 transition-colors">
+                    {t.name}
                   </span>
+                  {t.version && (
+                    <span className="text-xs text-gray-400 dark:text-gray-500">v{t.version}</span>
+                  )}
+                  {t.isFree !== undefined && (
+                    <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                      t.isFree
+                        ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
+                    }`}>
+                      {t.isFree ? '免费' : '付费'}
+                    </span>
+                  )}
+                </div>
+                {t.description && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-1">{t.description}</p>
+                )}
+                {t.platform && (
+                  <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                    <Wrench className="w-3 h-3" />
+                    {t.platform}
+                  </p>
                 )}
               </div>
-              {t.description && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-1">{t.description}</p>
-              )}
-              {t.platform && (
-                <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
-                  <Wrench className="w-3 h-3" />
-                  {t.platform}
-                </p>
-              )}
-            </div>
-            <div className="flex-shrink-0 flex items-center gap-1 text-xs text-gray-400 group-hover:text-lobster-500 transition-colors pt-0.5">
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">下载</span>
-            </div>
-          </a>
-        ))}
-      </div>
+              <div className="flex-shrink-0 flex items-center gap-1 text-xs text-gray-400 group-hover:text-lobster-500 transition-colors pt-0.5">
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">下载</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -540,28 +551,20 @@ export default function SeriesDetailPage() {
 
   const totalReadTime = seriesPosts.reduce((sum, p) => sum + (p?.readTime || 0), 0);
 
-  // 组装导航条目
+  // 组装导航条目（所有主题都显示，不过滤空的）
   const navItems: { key: NavKey; label: string; count: number; icon: React.ReactNode }[] = [
-    { key: 'posts',     label: '文章目录', count: seriesPosts.length,              icon: <BookOpen  className="w-3.5 h-3.5" /> },
-    { key: 'reports',   label: '报告文件', count: (series.reports   || []).length,  icon: <FileText  className="w-3.5 h-3.5" /> },
+    { key: 'posts',     label: '文章目录', count: seriesPosts.length,              icon: <BookOpen   className="w-3.5 h-3.5" /> },
+    { key: 'reports',   label: '报告文件', count: (series.reports   || []).length,  icon: <FileText   className="w-3.5 h-3.5" /> },
     { key: 'materials', label: '资料资质', count: (series.materials || []).length,  icon: <FolderOpen className="w-3.5 h-3.5" /> },
-    { key: 'platforms', label: '相关平台', count: (series.platforms || []).length,  icon: <Globe     className="w-3.5 h-3.5" /> },
-    { key: 'tools',     label: '工具软件', count: (series.tools     || []).length,  icon: <Wrench    className="w-3.5 h-3.5" /> },
+    { key: 'platforms', label: '相关平台', count: (series.platforms || []).length,  icon: <Globe      className="w-3.5 h-3.5" /> },
+    { key: 'tools',     label: '工具软件', count: (series.tools     || []).length,  icon: <Wrench     className="w-3.5 h-3.5" /> },
     ...(series.sections || []).map(s => ({
       key: s.id,
       label: s.title,
       count: s.items.length,
       icon: <span className="text-xs">{s.icon || '📌'}</span>,
     })),
-  ].filter(n => n.count > 0);
-
-  // 检查是否有任何资源
-  const hasResources =
-    (series.reports   || []).length > 0 ||
-    (series.materials || []).length > 0 ||
-    (series.platforms || []).length > 0 ||
-    (series.tools     || []).length > 0 ||
-    (series.sections  || []).length > 0;
+  ];
 
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
@@ -626,7 +629,7 @@ export default function SeriesDetailPage() {
         </div>
       </section>
 
-      {/* 快速导航（有多个分区时显示） */}
+      {/* 快速导航（始终显示，超过1个主题时显示） */}
       {navItems.length > 1 && (
         <nav className="flex items-center gap-1.5 flex-wrap mb-8 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800">
           <span className="text-xs text-gray-400 dark:text-gray-500 mr-1 flex-shrink-0">快速跳转：</span>
@@ -654,34 +657,26 @@ export default function SeriesDetailPage() {
         </nav>
       )}
 
-      {/* ── 相关主题（纵向分区） ── */}
+      {/* ── 相关主题（纵向，全部显示） ── */}
       <div>
         {/* 文章目录 */}
         <div id="section-posts">
           <PostsSection series={series} posts={seriesPosts} />
         </div>
 
-        {/* 固定4个资源分区 */}
-        {(series.reports || []).length > 0 && (
-          <div id="section-reports">
-            <ReportsSection reports={series.reports || []} />
-          </div>
-        )}
-        {(series.materials || []).length > 0 && (
-          <div id="section-materials">
-            <MaterialsSection materials={series.materials || []} />
-          </div>
-        )}
-        {(series.platforms || []).length > 0 && (
-          <div id="section-platforms">
-            <PlatformsSection platforms={series.platforms || []} />
-          </div>
-        )}
-        {(series.tools || []).length > 0 && (
-          <div id="section-tools">
-            <ToolsSection tools={series.tools || []} />
-          </div>
-        )}
+        {/* 固定4个资源主题（始终显示，空时有占位提示） */}
+        <div id="section-reports">
+          <ReportsSection reports={series.reports || []} />
+        </div>
+        <div id="section-materials">
+          <MaterialsSection materials={series.materials || []} />
+        </div>
+        <div id="section-platforms">
+          <PlatformsSection platforms={series.platforms || []} />
+        </div>
+        <div id="section-tools">
+          <ToolsSection tools={series.tools || []} />
+        </div>
 
         {/* 自定义主题分区 */}
         {(series.sections || []).map(section => (
@@ -689,15 +684,6 @@ export default function SeriesDetailPage() {
             <CustomSection section={section} />
           </div>
         ))}
-
-        {/* 如果完全没有资源，显示提示 */}
-        {!hasResources && (
-          <div className="text-center py-10 rounded-xl border border-dashed border-gray-200 dark:border-gray-800 mt-2">
-            <Layers className="w-8 h-8 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-            <p className="text-gray-400 dark:text-gray-500 text-sm font-medium">暂无相关主题资源</p>
-            <p className="text-gray-300 dark:text-gray-600 text-xs mt-1">后台可添加报告、资料、平台和工具</p>
-          </div>
-        )}
       </div>
 
       {/* Bottom nav */}
