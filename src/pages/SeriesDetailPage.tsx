@@ -442,7 +442,7 @@ function CustomSection({ section }: { section: SeriesSection }) {
   );
 }
 
-// ─── 文章目录分区 ─────────────────────────────────────────────────────────────
+// ─── 相关主题分区 ─────────────────────────────────────────────────────────────
 
 function PostsSection({ series, posts: seriesPosts }: {
   series: { coverColor?: string };
@@ -453,7 +453,7 @@ function PostsSection({ series, posts: seriesPosts }: {
     <section className="mb-10">
       <SectionHeader
         icon={<BookOpen className="w-5 h-5" />}
-        title="文章目录"
+        title="相关主题"
         description="按顺序阅读，循序渐进掌握本专题内容"
         count={validPosts.length}
         accent="lobster"
@@ -553,7 +553,7 @@ export default function SeriesDetailPage() {
 
   // 组装导航条目（所有主题都显示，不过滤空的）
   const navItems: { key: NavKey; label: string; count: number; icon: React.ReactNode }[] = [
-    { key: 'posts',     label: '文章目录', count: seriesPosts.length,              icon: <BookOpen   className="w-3.5 h-3.5" /> },
+    { key: 'posts',     label: '相关主题', count: seriesPosts.length,              icon: <BookOpen   className="w-3.5 h-3.5" /> },
     { key: 'reports',   label: '报告文件', count: (series.reports   || []).length,  icon: <FileText   className="w-3.5 h-3.5" /> },
     { key: 'materials', label: '资料资质', count: (series.materials || []).length,  icon: <FolderOpen className="w-3.5 h-3.5" /> },
     { key: 'platforms', label: '相关平台', count: (series.platforms || []).length,  icon: <Globe      className="w-3.5 h-3.5" /> },
