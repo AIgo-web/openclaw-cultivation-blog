@@ -11,51 +11,73 @@ import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import type { SeriesReport, SeriesMaterial, SeriesPlatform, SeriesTool, SeriesSection } from '../types';
 
-// ─── 简介渲染（支持 **粗体** 分段）─────────────────────────────────────────────
+// ─── 简介渲染（支持换行分段 + 行内 **粗体**）────────────────────────────────────
 
-function renderDescription(text: string) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g).filter(p => p !== '');
-  const paragraphs: { bold: string; body: string }[] = [];
-  let current: { bold: string; body: string } | null = null;
-
-  for (const part of parts) {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      if (current) paragraphs.push(current);
-      current = { bold: part.slice(2, -2), body: '' };
-    } else {
-      if (current) {
-        current.body += part;
-      } else {
-        paragraphs.push({ bold: '', body: part });
-      }
-    }
+/** 将一行文本中的 **...** 解析为 <strong>，其余为普通文本 */
+function renderInline(line: string, key: number) {
+  const segments = line.split(/(\*\*[^*]+\*\*)/g).filter(s => s !== '');
+  if (segments.length === 1 && !line.startsWith('**')) {
+    return (
+      <p key={key} className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-7">
+        {line}
+      </p>
+    );
   }
-  if (current) paragraphs.push(current);
-
-  if (paragraphs.length === 0)
-    return <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-7">{text}</p>;
-
   return (
-    <div className="space-y-3">
-      {paragraphs.map((p, i) => (
-        <div key={i}>
-          {p.bold && (
-            <p className="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-100 mb-0.5">
-              {p.bold}
-            </p>
-          )}
-          {p.body.trim() && (
-            <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 leading-7">
-              {p.body.trim()}
-            </p>
-          )}
-        </div>
-      ))}
-    </div>
+    <p key={key} className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-7">
+      {segments.map((seg, i) =>
+        seg.startsWith('**') && seg.endsWith('**') ? (
+          <strong key={i} className="font-semibold text-gray-800 dark:text-gray-100">
+            {seg.slice(2, -2)}
+          </strong>
+        ) : (
+          <span key={i}>{seg}</span>
+        )
+      )}
+    </p>
   );
 }
 
+function renderDescription(text: string) {
+  // 按换行符分段，过滤掉空行但保留段落间距
+  const lines = text.split(/\n+/).map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length === 0)
+    return <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-7">{text}</p>;
+  if (lines.length === 1)
+    return renderInline(lines[0], 0);
+  return <div className="space-y-2">{lines.map((line, i) => renderInline(line, i))}</div>;
+}
+
 // ─── 工具函数 ─────────────────────────────────────────────────────────────────
+
+/**
+ * 打开文件链接。
+ * - 普通 URL：直接在新标签页打开
+ * - base64 Data URL（本地上传文件）：转为 Blob URL 再打开，避免浏览器 CSP 限制
+ */
+function openUrl(url: string) {
+  if (!url) return;
+  if (url.startsWith('data:')) {
+    try {
+      const [header, base64] = url.split(',');
+      const mime = header.match(/data:([^;]+)/)?.[1] || 'application/octet-stream';
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: mime });
+      const blobUrl = URL.createObjectURL(blob);
+      const win = window.open(blobUrl, '_blank');
+      // 延迟释放，让浏览器有时间加载
+      if (win) setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      else URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(url, '_blank');
+    }
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
+
 
 function fileTypeIcon(type: string) {
   switch (type) {
@@ -142,37 +164,52 @@ function ReportsSection({ reports }: { reports: SeriesReport[] }) {
         <EmptyHint icon="📄" text="暂无报告文件，可在后台「资源 → 报告文件」中添加" />
       ) : (
         <div className="space-y-3">
-          {reports.map(r => (
-            <a
-              key={r.id}
-              href={r.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-start gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1d27] hover:border-lobster-300 dark:hover:border-lobster-700 hover:shadow-md transition-all"
-            >
-              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
-                {fileTypeIcon(r.type)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className="font-semibold text-gray-900 dark:text-white group-hover:text-lobster-500 transition-colors">
-                    {r.title}
-                  </span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded font-medium uppercase ${fileTypeBadge(r.type)}`}>
-                    {r.type}
-                  </span>
-                  {r.size && <span className="text-xs text-gray-400 dark:text-gray-500">{r.size}</span>}
+          {reports.map(r => {
+            const pdfUrl  = r.pdfUrl  || (r.type === 'pdf'  ? r.url : undefined);
+            const htmlUrl = r.htmlUrl || (r.type === 'html' ? r.url : undefined);
+            return (
+              <div
+                key={r.id}
+                className="flex items-start gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1d27]"
+              >
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-red-500" />
                 </div>
-                {r.description && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{r.description}</p>
-                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      {r.title}
+                    </span>
+                    {r.size && <span className="text-xs text-gray-400 dark:text-gray-500">{r.size}</span>}
+                  </div>
+                  {r.description && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-2">{r.description}</p>
+                  )}
+                  {/* 打开按钮 */}
+                  <div className="flex gap-2 flex-wrap">
+                    {pdfUrl && (
+                      <button
+                        onClick={() => openUrl(pdfUrl)}
+                        className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40 font-medium transition-colors"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        {pdfUrl.startsWith('data:') ? '打开 PDF（本地）' : '打开 PDF'}
+                      </button>
+                    )}
+                    {htmlUrl && (
+                      <button
+                        onClick={() => openUrl(htmlUrl)}
+                        className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 font-medium transition-colors"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        {htmlUrl.startsWith('data:') ? '打开 HTML（本地）' : '打开 HTML'}
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="flex-shrink-0 flex items-center gap-1 text-xs text-gray-400 group-hover:text-lobster-500 transition-colors pt-0.5">
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">查看/下载</span>
-              </div>
-            </a>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>
@@ -196,19 +233,16 @@ function MaterialsSection({ materials }: { materials: SeriesMaterial[] }) {
       ) : (
         <div className="space-y-3">
           {materials.map(m => (
-            <a
+            <div
               key={m.id}
-              href={m.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-start gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1d27] hover:border-lobster-300 dark:hover:border-lobster-700 hover:shadow-md transition-all"
+              className="flex items-start gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1d27] hover:border-lobster-300 dark:hover:border-lobster-700 hover:shadow-md transition-all"
             >
               <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
                 {fileTypeIcon(m.type)}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className="font-semibold text-gray-900 dark:text-white group-hover:text-lobster-500 transition-colors">
+                  <span className="font-semibold text-gray-900 dark:text-white">
                     {m.title}
                   </span>
                   <span className={`text-xs px-1.5 py-0.5 rounded font-medium uppercase ${fileTypeBadge(m.type)}`}>
@@ -217,14 +251,31 @@ function MaterialsSection({ materials }: { materials: SeriesMaterial[] }) {
                   {m.size && <span className="text-xs text-gray-400 dark:text-gray-500">{m.size}</span>}
                 </div>
                 {m.description && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{m.description}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-2">{m.description}</p>
                 )}
+                {/* 操作按钮行 */}
+                <div className="flex gap-2 flex-wrap">
+                  <a
+                    href={m.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 font-medium transition-colors border border-gray-200 dark:border-gray-700"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    下载 / 查看
+                  </a>
+                  {m.htmlUrl && (
+                    <button
+                      onClick={() => openUrl(m.htmlUrl!)}
+                      className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 font-medium transition-colors"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      {m.htmlUrl.startsWith('data:') ? '打开网页（本地）' : '打开网页'}
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="flex-shrink-0 flex items-center gap-1 text-xs text-gray-400 group-hover:text-lobster-500 transition-colors pt-0.5">
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">下载</span>
-              </div>
-            </a>
+            </div>
           ))}
         </div>
       )}
@@ -267,26 +318,43 @@ function PlatformsSection({ platforms }: { platforms: SeriesPlatform[] }) {
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {grouped[cat].map(p => (
-                  <a
+                  <div
                     key={p.id}
-                    href={p.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1d27] hover:border-lobster-300 dark:hover:border-lobster-700 hover:shadow-md transition-all"
+                    className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1d27] hover:border-lobster-300 dark:hover:border-lobster-700 hover:shadow-md transition-all"
                   >
                     <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-xl">
                       {p.icon || '🔗'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 dark:text-white group-hover:text-lobster-500 transition-colors truncate">
+                      <p className="font-semibold text-gray-900 dark:text-white truncate">
                         {p.name}
                       </p>
                       {p.description && (
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{p.description}</p>
                       )}
+                      {/* 操作按钮 */}
+                      <div className="flex gap-2 mt-1.5 flex-wrap">
+                        <a
+                          href={p.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          访问平台
+                        </a>
+                        {p.htmlUrl && (
+                          <button
+                            onClick={() => openUrl(p.htmlUrl!)}
+                            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 transition-colors"
+                          >
+                            <Globe className="w-3 h-3" />
+                            {p.htmlUrl.startsWith('data:') ? '打开网页（本地）' : '打开网页'}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <ExternalLink className="flex-shrink-0 w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-lobster-400 transition-colors" />
-                  </a>
+                  </div>
                 ))}
               </div>
             </div>
@@ -314,19 +382,16 @@ function ToolsSection({ tools }: { tools: SeriesTool[] }) {
       ) : (
         <div className="space-y-3">
           {tools.map(t => (
-            <a
+            <div
               key={t.id}
-              href={t.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-start gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1d27] hover:border-lobster-300 dark:hover:border-lobster-700 hover:shadow-md transition-all"
+              className="flex items-start gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1d27] hover:border-lobster-300 dark:hover:border-lobster-700 hover:shadow-md transition-all"
             >
               <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-2xl">
                 {t.icon || '⚙️'}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className="font-semibold text-gray-900 dark:text-white group-hover:text-lobster-500 transition-colors">
+                  <span className="font-semibold text-gray-900 dark:text-white">
                     {t.name}
                   </span>
                   {t.version && (
@@ -346,17 +411,34 @@ function ToolsSection({ tools }: { tools: SeriesTool[] }) {
                   <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-1">{t.description}</p>
                 )}
                 {t.platform && (
-                  <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1 mb-2">
                     <Wrench className="w-3 h-3" />
                     {t.platform}
                   </p>
                 )}
+                {/* 操作按钮行 */}
+                <div className="flex gap-2 flex-wrap">
+                  <a
+                    href={t.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 font-medium transition-colors border border-gray-200 dark:border-gray-700"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    下载
+                  </a>
+                  {t.htmlUrl && (
+                    <button
+                      onClick={() => openUrl(t.htmlUrl!)}
+                      className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 font-medium transition-colors"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      {t.htmlUrl.startsWith('data:') ? '打开网页（本地）' : '打开网页'}
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="flex-shrink-0 flex items-center gap-1 text-xs text-gray-400 group-hover:text-lobster-500 transition-colors pt-0.5">
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">下载</span>
-              </div>
-            </a>
+            </div>
           ))}
         </div>
       )}

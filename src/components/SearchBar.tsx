@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import { searchPosts, highlightSearchTerm, generateSearchPreview, validateSearchInput, sanitizeSearchInput } from '../utils/search';
 import { useToast } from '../contexts/ToastContext';
 import { useSearch } from '../contexts/SearchContext';
+import { usePosts } from '../contexts/PostsContext';
 
 export const SearchBar: React.FC = () => {
   const { isOpen, closeSearch } = useSearch();
   const [query, setQuery] = useState('');
   const { showToast } = useToast();
+  const { posts } = usePosts();
   const inputRef = useRef<HTMLInputElement>(null);
 
   // 当搜索栏打开时自动获得焦点
@@ -17,7 +19,7 @@ export const SearchBar: React.FC = () => {
     }
   }, [isOpen]);
 
-  // ✅ 防抖搜索
+  // ✅ 防抖搜索 - 使用动态 posts 数据（含 localStorage 新建文章）
   const results = useMemo(() => {
     if (!query.trim()) {
       return [];
@@ -27,8 +29,8 @@ export const SearchBar: React.FC = () => {
       return [];
     }
 
-    return searchPosts(query);
-  }, [query]);
+    return searchPosts(query, posts);
+  }, [query, posts]);
 
   const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -117,7 +119,9 @@ export const SearchBar: React.FC = () => {
                       )}
                     </h4>
                     <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-                      {generateSearchPreview(post.content.replace(/#\s/g, ''), query, 80)}
+                      {post.excerpt
+                        ? generateSearchPreview(post.excerpt, query, 80)
+                        : generateSearchPreview(post.content.replace(/#\s/g, ''), query, 80)}
                     </p>
                     {post.tags.length > 0 && (
                       <div className="mt-1 flex flex-wrap gap-1">

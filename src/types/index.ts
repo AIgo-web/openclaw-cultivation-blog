@@ -21,8 +21,10 @@ export interface SeriesReport {
   id: string;
   title: string;
   description?: string;
-  url: string;              // 文件链接或网盘链接
-  type: 'pdf' | 'html' | 'other';
+  url: string;              // 兼容旧数据：主链接（pdfUrl/htmlUrl 均为空时使用）
+  pdfUrl?: string;          // PDF 文件链接
+  htmlUrl?: string;         // HTML 网页链接
+  type: 'pdf' | 'html' | 'both' | 'other';
   size?: string;            // 如 "2.4 MB"
 }
 
@@ -32,7 +34,8 @@ export interface SeriesMaterial {
   title: string;
   description?: string;
   url: string;
-  type: 'pdf' | 'doc' | 'image' | 'zip' | 'other';
+  htmlUrl?: string;         // 本地上传的 HTML 文件（data: URL），前台可直接打开
+  type: 'pdf' | 'doc' | 'image' | 'zip' | 'html' | 'other';
   size?: string;
 }
 
@@ -42,6 +45,7 @@ export interface SeriesPlatform {
   name: string;
   description?: string;
   url: string;
+  htmlUrl?: string;         // 本地上传的 HTML 文件（data: URL），前台可直接打开
   icon?: string;            // emoji 或平台图标
   category?: string;        // 如 "视频平台"、"知识付费"
 }
@@ -52,6 +56,7 @@ export interface SeriesTool {
   name: string;
   description?: string;
   url: string;              // 下载链接或网盘链接
+  htmlUrl?: string;         // 本地上传的 HTML 文件（data: URL），前台可直接打开
   platform?: string;        // 如 "Windows / macOS"
   version?: string;
   icon?: string;

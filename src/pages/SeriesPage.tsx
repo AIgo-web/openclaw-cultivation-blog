@@ -3,6 +3,65 @@ import { useSeries } from '../contexts/SeriesContext';
 import { usePosts } from '../contexts/PostsContext';
 import { BookOpen, Clock, ChevronRight } from 'lucide-react';
 
+/**
+ * 打开文件链接。base64 Data URL（上传文件）先转 Blob URL 再打开，避免 CSP 限制。
+ */
+function openUrl(url: string) {
+  if (!url) return;
+  if (url.startsWith('data:')) {
+    try {
+      const [header, base64] = url.split(',');
+      const mime = header.match(/data:([^;]+)/)?.[1] || 'application/octet-stream';
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: mime });
+      const blobUrl = URL.createObjectURL(blob);
+      const win = window.open(blobUrl, '_blank');
+      if (win) setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      else URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(url, '_blank');
+    }
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
+
+/** 将一行文本中的 **...** 解析为 <strong>，其余为普通文本（行内） */
+function renderInline(line: string) {
+  const segments = line.split(/(\*\*[^*]+\*\*)/g).filter(s => s !== '');
+  if (segments.length === 1 && !line.startsWith('**')) return <>{line}</>;
+  return (
+    <>
+      {segments.map((seg, i) =>
+        seg.startsWith('**') && seg.endsWith('**') ? (
+          <strong key={i} className="font-semibold text-gray-800 dark:text-gray-200">
+            {seg.slice(2, -2)}
+          </strong>
+        ) : (
+          <span key={i}>{seg}</span>
+        )
+      )}
+    </>
+  );
+}
+
+/** 按换行分段 + 行内粗体渲染 */
+function renderDescription(text: string) {
+  const lines = text.split(/\n+/).map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length <= 1) {
+    return <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{renderInline(text.trim())}</p>;
+  }
+  return (
+    <div className="space-y-1.5">
+      {lines.map((line, i) => (
+        <p key={i} className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{renderInline(line)}</p>
+      ))}
+    </div>
+  );
+}
+
 const COVER_COLORS = [
   'from-lobster-400 to-lobster-600',
   'from-blue-400 to-blue-600',
@@ -108,39 +167,99 @@ export default function SeriesPage() {
                     {series.description ? (
                       <div className="flex gap-2.5 mb-4">
                         <div className={`w-0.5 flex-shrink-0 rounded-full bg-gradient-to-b ${coverColor} opacity-60 self-stretch min-h-[1em]`} />
-                        <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                          {series.description}
-                        </p>
+                        <div className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed min-w-0">
+                          {renderDescription(series.description)}
+                        </div>
                       </div>
                     ) : (
                       <p className="text-sm text-gray-400 dark:text-gray-500 mb-4 italic">暂无简介</p>
                     )}
                   </div>
 
-                  {/* 文章预览：分隔线 + 列表 */}
-                  {publishedPosts.length > 0 && (
-                    <div className="border-t border-gray-100 dark:border-gray-800 pt-3">
-                      <div className="text-xs text-gray-400 dark:text-gray-500 font-medium mb-2 flex items-center gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
-                        文章目录
+                  {/* 相关主题：分隔线 + 列表 */}
+                  {(() => {
+                    const reportsCount   = (series.reports   || []).length;
+                    const materialsCount = (series.materials || []).length;
+                    const platformsCount = (series.platforms || []).length;
+                    const toolsCount     = (series.tools     || []).length;
+                    const sectionsCount  = (series.sections  || []).length;
+                    const hasAny = true; // 固定4个资源主题始终显示
+                    if (!hasAny) return null;
+
+                    return (
+                      <div className="border-t border-gray-100 dark:border-gray-800 pt-3">
+                        <div className="text-xs text-gray-400 dark:text-gray-500 font-medium mb-2 flex items-center gap-1">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
+                          相关主题
+                        </div>
+                        <div className="space-y-1.5">
+                          {/* 文章列表 */}
+                          {publishedPosts.map((post, i) => (
+                            <div key={post!.id} className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                              <span className="w-5 h-5 flex-shrink-0 rounded-full bg-gray-100 dark:bg-gray-800 text-xs flex items-center justify-center font-semibold text-gray-400 dark:text-gray-500">
+                                {i + 1}
+                              </span>
+                              <span className="truncate group-hover:text-gray-700 dark:group-hover:text-gray-200 transition-colors">{post!.title}</span>
+                            </div>
+                          ))}
+
+                          {/* 报告文件：每条单独展示，可点击 */}
+                          {reportsCount === 0 ? (
+                            <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
+                              <span className="w-5 h-5 flex-shrink-0 rounded-full bg-gray-100 dark:bg-gray-800 text-xs flex items-center justify-center">📄</span>
+                              <span className="truncate">报告文件</span>
+                              <span className="ml-auto flex-shrink-0 text-xs text-gray-300 dark:text-gray-600">0 项</span>
+                            </div>
+                          ) : (
+                            (series.reports || []).map(r => {
+                              const pdfUrl  = r.pdfUrl  || (r.type === 'pdf'  ? r.url : undefined);
+                              const htmlUrl = r.htmlUrl || (r.type === 'html' ? r.url : undefined);
+                              return (
+                                <div key={r.id} className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                  <span className="w-5 h-5 flex-shrink-0 rounded-full bg-red-50 dark:bg-red-900/20 text-xs flex items-center justify-center">📄</span>
+                                  <span className="flex-1 truncate">{r.title}</span>
+                                  <div className="flex gap-1 flex-shrink-0">
+                                    {pdfUrl && (
+                                      <button
+                                        onClick={e => { e.preventDefault(); e.stopPropagation(); openUrl(pdfUrl); }}
+                                        className="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors whitespace-nowrap"
+                                      >
+                                        {pdfUrl.startsWith('data:') ? 'PDF↗' : '打开 PDF'}
+                                      </button>
+                                    )}
+                                    {htmlUrl && (
+                                      <button
+                                        onClick={e => { e.preventDefault(); e.stopPropagation(); openUrl(htmlUrl); }}
+                                        className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors whitespace-nowrap"
+                                      >
+                                        {htmlUrl.startsWith('data:') ? 'HTML↗' : '打开 HTML'}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+
+                          {/* 其余资源主题：显示分类+数量 */}
+                          {[
+                            { label: '资料与资质', count: materialsCount, emoji: '🗂️' },
+                            { label: '相关平台',   count: platformsCount,  emoji: '🌐' },
+                            { label: '工具软件',   count: toolsCount,      emoji: '🔧' },
+                            ...(series.sections || []).map(s => ({ label: s.title, count: s.items.length, emoji: s.icon || '📌' })),
+                          ].map(r => (
+                            <div key={r.label} className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                              <span className="w-5 h-5 flex-shrink-0 rounded-full bg-gray-100 dark:bg-gray-800 text-xs flex items-center justify-center">
+                                {r.emoji}
+                              </span>
+                              <span className="truncate">{r.label}</span>
+                              <span className="ml-auto flex-shrink-0 text-xs text-gray-300 dark:text-gray-600">{r.count} 项</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="space-y-1.5">
-                        {publishedPosts.slice(0, 3).map((post, i) => (
-                          <div key={post!.id} className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                            <span className="w-5 h-5 flex-shrink-0 rounded-full bg-gray-100 dark:bg-gray-800 text-xs flex items-center justify-center font-semibold text-gray-400 dark:text-gray-500">
-                              {i + 1}
-                            </span>
-                            <span className="truncate group-hover:text-gray-700 dark:group-hover:text-gray-200 transition-colors">{post!.title}</span>
-                          </div>
-                        ))}
-                        {publishedPosts.length > 3 && (
-                          <div className="text-xs text-lobster-400 dark:text-lobster-500 pl-7">
-                            还有 {publishedPosts.length - 3} 篇 →
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   <div className="flex items-center justify-end mt-4">
                     <span className="text-sm font-medium text-lobster-500 dark:text-lobster-400 flex items-center gap-1 group-hover:gap-2 transition-all">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Plus, Trash2, Edit2, X, Check, GripVertical, BookOpen,
   Eye, EyeOff, FileText, FolderOpen, Globe, Wrench, Link2, Layers,
@@ -255,7 +255,281 @@ function SectionItemEditor({
   );
 }
 
-/** 单行文件资源表单（报告 / 资料） */
+// ─── 文件读取工具函数 ────────────────────────────────────────────────────────
+function readFileAsDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * 打开文件链接。base64 Data URL（上传文件）先转 Blob URL 再打开，避免 CSP 限制。
+ */
+function openUrl(url: string) {
+  if (!url) return;
+  if (url.startsWith('data:')) {
+    try {
+      const [header, base64] = url.split(',');
+      const mime = header.match(/data:([^;]+)/)?.[1] || 'application/octet-stream';
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: mime });
+      const blobUrl = URL.createObjectURL(blob);
+      const win = window.open(blobUrl, '_blank');
+      if (win) setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      else URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(url, '_blank');
+    }
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
+
+// ─── 单行文件/链接输入组件 ────────────────────────────────────────────────────
+interface FileOrUrlInputProps {
+  label: string;
+  labelColor: string; // 'red' | 'blue'
+  accept: string;     // e.g. "application/pdf"
+  value: string;
+  isDark: boolean;
+  inputCls: string;
+  onChange: (url: string, fileName?: string) => void;
+  onSizeChange?: (size: string) => void;
+}
+
+function FileOrUrlInput({
+  label, labelColor, accept, value, isDark, inputCls, onChange, onSizeChange,
+}: FileOrUrlInputProps) {
+  const [mode, setMode] = useState<'url' | 'file'>('url');
+  const [uploading, setUploading] = useState(false);
+  const [fileName, setFileName] = useState('');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const colorMap = {
+    red: {
+      label: 'text-red-500',
+      activeBg: 'bg-red-500 text-white',
+      inactiveBg: isDark ? 'bg-gray-700 text-gray-400 hover:bg-gray-600' : 'bg-gray-200 text-gray-500 hover:bg-gray-300',
+      uploadBtn: 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800',
+      fileTag: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    },
+    blue: {
+      label: 'text-blue-500',
+      activeBg: 'bg-blue-500 text-white',
+      inactiveBg: isDark ? 'bg-gray-700 text-gray-400 hover:bg-gray-600' : 'bg-gray-200 text-gray-500 hover:bg-gray-300',
+      uploadBtn: 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800',
+      fileTag: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    },
+  };
+  const c = colorMap[labelColor as keyof typeof colorMap] || colorMap.red;
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // 大文件警告：超过 500KB 建议使用外链
+    if (file.size > 500 * 1024) {
+      const sizeKB = file.size / 1024;
+      const sizeStr = sizeKB >= 1024
+        ? `${(sizeKB / 1024).toFixed(1)} MB`
+        : `${Math.ceil(sizeKB)} KB`;
+      const ok = confirm(
+        `⚠️ 文件较大（${sizeStr}）\n\n本地上传会将文件以 Base64 格式存入浏览器 localStorage（上限 5MB）。\n大文件可能导致存储失败，刷新后数据消失。\n\n建议将文件上传到网盘后，使用「🔗 网址」模式粘贴外链。\n\n仍要继续上传？`
+      );
+      if (!ok) {
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+    }
+    setUploading(true);
+    try {
+      const dataUrl = await readFileAsDataURL(file);
+      const sizeKB = file.size / 1024;
+      const sizeStr = sizeKB >= 1024
+        ? `${(sizeKB / 1024).toFixed(1)} MB`
+        : `${Math.ceil(sizeKB)} KB`;
+      setFileName(file.name);
+      onChange(dataUrl, file.name);
+      if (onSizeChange) onSizeChange(sizeStr);
+    } catch {
+      alert('文件读取失败，请重试');
+    } finally {
+      setUploading(false);
+      // reset input so same file can be re-selected
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleClear = () => {
+    setFileName('');
+    onChange('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  return (
+    <div className="space-y-1.5">
+      {/* 标签 + 模式切换 */}
+      <div className="flex items-center gap-2">
+        <span className={`flex-shrink-0 text-xs font-bold w-12 ${c.label}`}>{label}</span>
+        <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 text-xs">
+          <button
+            type="button"
+            onClick={() => { setMode('url'); handleClear(); }}
+            className={`px-2.5 py-1 transition-colors ${mode === 'url' ? c.activeBg : c.inactiveBg}`}
+          >
+            🔗 网址
+          </button>
+          <button
+            type="button"
+            onClick={() => { setMode('file'); handleClear(); }}
+            className={`px-2.5 py-1 transition-colors ${mode === 'file' ? c.activeBg : c.inactiveBg}`}
+          >
+            📁 上传
+          </button>
+        </div>
+      </div>
+
+      {/* 输入区域 */}
+      {mode === 'url' ? (
+        <input
+          className={inputCls}
+          placeholder={`粘贴 ${label} 链接（可选）`}
+          value={value.startsWith('data:') ? '' : value}
+          onChange={e => onChange(e.target.value)}
+        />
+      ) : (
+        <div>
+          {/* 已上传文件显示 */}
+          {value && value.startsWith('data:') ? (
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm ${c.uploadBtn}`}>
+              <span className="flex-1 truncate">{fileName || '已上传文件'}</span>
+              <button type="button" onClick={handleClear}
+                className="flex-shrink-0 text-xs opacity-60 hover:opacity-100 transition-opacity">✕ 移除</button>
+            </div>
+          ) : (
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-dashed cursor-pointer text-sm transition-colors ${c.uploadBtn} ${uploading ? 'opacity-60 pointer-events-none' : ''}`}
+            >
+              {uploading ? (
+                <span className="text-xs">读取中…</span>
+              ) : (
+                <>
+                  <span className="text-base">📎</span>
+                  <span className="text-xs">点击选择 {label} 文件</span>
+                  <span className="text-xs opacity-50">（{accept}）</span>
+                </>
+              )}
+            </div>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={accept}
+            className="hidden"
+            onChange={handleFileChange}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** 报告文件专用表单（支持 PDF + HTML 双链接，每种均可上传文件或填写网址） */
+function ReportForm({
+  isDark,
+  inputCls,
+  onAdd,
+}: {
+  isDark: boolean;
+  inputCls: string;
+  onAdd: (item: SeriesReport) => void;
+}) {
+  const [f, setF] = useState({ title: '', pdfUrl: '', htmlUrl: '', description: '', size: '' });
+  const [addedTip, setAddedTip] = useState(false);
+
+  const handleAdd = () => {
+    if (!f.title.trim()) return;
+    if (!f.pdfUrl.trim() && !f.htmlUrl.trim()) return;
+    const hasPdf = !!f.pdfUrl.trim();
+    const hasHtml = !!f.htmlUrl.trim();
+    const type = hasPdf && hasHtml ? 'both' : hasPdf ? 'pdf' : 'html';
+    onAdd({
+      id: newId(),
+      title: f.title.trim(),
+      pdfUrl: f.pdfUrl.trim() || undefined,
+      htmlUrl: f.htmlUrl.trim() || undefined,
+      url: f.pdfUrl.trim() || f.htmlUrl.trim(), // 兼容字段
+      type,
+      description: f.description.trim() || undefined,
+      size: f.size.trim() || undefined,
+    } as SeriesReport);
+    setF({ title: '', pdfUrl: '', htmlUrl: '', description: '', size: '' });
+    setAddedTip(true);
+    setTimeout(() => setAddedTip(false), 2000);
+  };
+
+  return (
+    <div className={`rounded-xl border p-4 space-y-3 ${isDark ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>
+      <p className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>新增报告</p>
+      <input
+        className={inputCls}
+        placeholder="报告标题 *"
+        value={f.title}
+        onChange={e => setF(v => ({ ...v, title: e.target.value }))}
+      />
+      {/* PDF 输入 */}
+      <FileOrUrlInput
+        label="PDF"
+        labelColor="red"
+        accept="application/pdf"
+        value={f.pdfUrl}
+        isDark={isDark}
+        inputCls={inputCls}
+        onChange={(url) => setF(v => ({ ...v, pdfUrl: url }))}
+        onSizeChange={(size) => setF(v => ({ ...v, size: v.size || size }))}
+      />
+      {/* HTML 输入 */}
+      <FileOrUrlInput
+        label="HTML"
+        labelColor="blue"
+        accept="text/html,.html,.htm"
+        value={f.htmlUrl}
+        isDark={isDark}
+        inputCls={inputCls}
+        onChange={(url) => setF(v => ({ ...v, htmlUrl: url }))}
+      />
+      <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>PDF 和 HTML 至少提供一个（支持上传文件或粘贴链接）</p>
+      <div className="grid grid-cols-2 gap-2">
+        <input
+          className={inputCls}
+          placeholder="备注说明（可选）"
+          value={f.description}
+          onChange={e => setF(v => ({ ...v, description: e.target.value }))}
+        />
+        <input
+          className={inputCls}
+          placeholder="文件大小，如 2.4 MB（可选）"
+          value={f.size}
+          onChange={e => setF(v => ({ ...v, size: e.target.value }))}
+        />
+      </div>
+      <button
+        onClick={handleAdd}
+        disabled={!f.title.trim() || (!f.pdfUrl.trim() && !f.htmlUrl.trim())}
+        className="w-full py-2 bg-lobster-500 hover:bg-lobster-600 disabled:opacity-40 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-colors"
+      >
+        {addedTip ? <><Check className="w-4 h-4" /> 已添加，记得点底部「保存资源」</> : <><Plus className="w-4 h-4" /> 添加报告</>}
+      </button>
+    </div>
+  );
+}
+
+/** 单行文件资源表单（资料） */
 function FileResourceForm({
   isDark,
   inputCls,
@@ -265,13 +539,13 @@ function FileResourceForm({
   isDark: boolean;
   inputCls: string;
   typeOptions: { value: string; label: string }[];
-  onAdd: (item: { title: string; description: string; url: string; type: string; size: string }) => void;
+  onAdd: (item: { title: string; description: string; url: string; htmlUrl?: string; type: string; size: string }) => void;
 }) {
-  const [f, setF] = useState({ title: '', url: '', description: '', type: typeOptions[0].value, size: '' });
+  const [f, setF] = useState({ title: '', url: '', description: '', type: typeOptions[0].value, size: '', htmlUrl: '' });
   const handleAdd = () => {
     if (!f.title.trim() || !f.url.trim()) return;
-    onAdd(f);
-    setF({ title: '', url: '', description: '', type: typeOptions[0].value, size: '' });
+    onAdd({ ...f, htmlUrl: f.htmlUrl || undefined });
+    setF({ title: '', url: '', description: '', type: typeOptions[0].value, size: '', htmlUrl: '' });
   };
   return (
     <div className={`rounded-xl border p-4 space-y-3 ${isDark ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>
@@ -311,6 +585,16 @@ function FileResourceForm({
           onChange={e => setF(v => ({ ...v, size: e.target.value }))}
         />
       </div>
+      {/* HTML 网页上传（可选） */}
+      <FileOrUrlInput
+        label="HTML"
+        labelColor="blue"
+        accept=".html,.htm"
+        value={f.htmlUrl}
+        isDark={isDark}
+        inputCls={inputCls}
+        onChange={url => setF(v => ({ ...v, htmlUrl: url }))}
+      />
       <button
         onClick={handleAdd}
         disabled={!f.title.trim() || !f.url.trim()}
@@ -324,16 +608,24 @@ function FileResourceForm({
 
 function ResourceManager({ series, onSave, onClose, isDark, inputCls }: ResourceManagerProps) {
   const [tab, setTab] = useState<ResTab>('reports');
-  // 用本地 state 暂存，点保存才写入
   const [reports, setReports] = useState<SeriesReport[]>(series.reports || []);
   const [materials, setMaterials] = useState<SeriesMaterial[]>(series.materials || []);
   const [platforms, setPlatforms] = useState<SeriesPlatform[]>(series.platforms || []);
   const [tools, setTools] = useState<SeriesTool[]>(series.tools || []);
   const [sections, setSections] = useState<SeriesSection[]>(series.sections || []);
 
-  const handleSave = () => {
-    onSave({ ...series, reports, materials, platforms, tools, sections, updatedAt: new Date().toISOString() });
+  // 用 ref 持有最新值，供自动保存回调读取（避免闭包捕获旧值）
+  const stateRef = React.useRef({ reports, materials, platforms, tools, sections });
+  React.useEffect(() => { stateRef.current = { reports, materials, platforms, tools, sections }; });
+
+  // 自动保存：将当前最新数据写入 context
+  const autoSave = (patch: Partial<typeof stateRef.current>) => {
+    const latest = { ...stateRef.current, ...patch };
+    onSave({ ...series, ...latest, updatedAt: new Date().toISOString() });
   };
+
+  // "完成"按钮：直接关闭（数据已自动保存）
+  const handleDone = () => onClose();
 
   const RES_TABS: { key: ResTab; label: string; icon: React.ReactNode; count: number }[] = [
     { key: 'reports',   label: '报告文件', icon: <FileText  className="w-4 h-4" />, count: reports.length   },
@@ -389,26 +681,50 @@ function ResourceManager({ series, onSave, onClose, isDark, inputCls }: Resource
           {/* ── 报告文件 ── */}
           {tab === 'reports' && (
             <>
-              <FileResourceForm
+              <ReportForm
                 isDark={isDark} inputCls={inputCls}
-                typeOptions={[
-                  { value: 'pdf', label: 'PDF' },
-                  { value: 'html', label: 'HTML 网页' },
-                  { value: 'other', label: '其他' },
-                ]}
-                onAdd={f => setReports(prev => [...prev, { id: newId(), ...f } as SeriesReport])}
+                onAdd={r => {
+                  const next = [...stateRef.current.reports, r];
+                  setReports(next);
+                  autoSave({ reports: next });
+                }}
               />
               {reports.length > 0 && (
                 <div className="space-y-2">
                   {reports.map(r => (
-                    <div key={r.id} className={`flex items-center gap-3 p-3 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-50'}`}>
-                      <FileText className="w-4 h-4 text-red-400 flex-shrink-0" />
+                    <div key={r.id} className={`flex items-start gap-3 p-3 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-50'}`}>
+                      <FileText className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{r.title}</p>
-                        <p className="text-xs text-gray-400 truncate">{r.url}</p>
+                        {r.description && <p className="text-xs text-gray-400 truncate">{r.description}</p>}
+                        {/* 打开按钮 */}
+                        <div className="flex gap-2 mt-1.5 flex-wrap">
+                          {(r.pdfUrl || (r.type === 'pdf' && r.url)) && (
+                            <button
+                              onClick={() => openUrl(r.pdfUrl || r.url)}
+                              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                            >
+                              <FileText className="w-3 h-3" />
+                              {(r.pdfUrl || r.url).startsWith('data:') ? 'PDF（已上传）' : '打开 PDF'}
+                            </button>
+                          )}
+                          {(r.htmlUrl || (r.type === 'html' && r.url)) && (
+                            <button
+                              onClick={() => openUrl(r.htmlUrl || r.url)}
+                              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                            >
+                              <Globe className="w-3 h-3" />
+                              {(r.htmlUrl || r.url).startsWith('data:') ? 'HTML（已上传）' : '打开 HTML'}
+                            </button>
+                          )}
+                          {r.size && <span className="text-xs text-gray-400">{r.size}</span>}
+                        </div>
                       </div>
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium uppercase ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>{r.type}</span>
-                      <button onClick={() => setReports(prev => prev.filter(x => x.id !== r.id))}
+                      <button onClick={() => {
+                          const next = stateRef.current.reports.filter(x => x.id !== r.id);
+                          setReports(next);
+                          autoSave({ reports: next });
+                        }}
                         className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -432,7 +748,11 @@ function ResourceManager({ series, onSave, onClose, isDark, inputCls }: Resource
                   { value: 'zip', label: '压缩包' },
                   { value: 'other', label: '其他' },
                 ]}
-                onAdd={f => setMaterials(prev => [...prev, { id: newId(), ...f } as SeriesMaterial])}
+                onAdd={f => {
+                  const next = [...stateRef.current.materials, { id: newId(), ...f } as SeriesMaterial];
+                  setMaterials(next);
+                  autoSave({ materials: next });
+                }}
               />
               {materials.length > 0 && (
                 <div className="space-y-2">
@@ -442,9 +762,20 @@ function ResourceManager({ series, onSave, onClose, isDark, inputCls }: Resource
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{m.title}</p>
                         <p className="text-xs text-gray-400 truncate">{m.url}</p>
+                        {m.htmlUrl && (
+                          <button onClick={() => openUrl(m.htmlUrl!)}
+                            className="mt-1 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200 transition-colors">
+                            <Globe className="w-3 h-3" />
+                            {m.htmlUrl.startsWith('data:') ? 'HTML（已上传）' : '打开网页'}
+                          </button>
+                        )}
                       </div>
                       <span className={`text-xs px-1.5 py-0.5 rounded font-medium uppercase ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>{m.type}</span>
-                      <button onClick={() => setMaterials(prev => prev.filter(x => x.id !== m.id))}
+                      <button onClick={() => {
+                          const next = stateRef.current.materials.filter(x => x.id !== m.id);
+                          setMaterials(next);
+                          autoSave({ materials: next });
+                        }}
                         className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -461,7 +792,11 @@ function ResourceManager({ series, onSave, onClose, isDark, inputCls }: Resource
             <>
               {/* 添加表单 */}
               <PlatformForm isDark={isDark} inputCls={inputCls}
-                onAdd={p => setPlatforms(prev => [...prev, { id: newId(), ...p } as SeriesPlatform])} />
+                onAdd={p => {
+                  const next = [...stateRef.current.platforms, { id: newId(), ...p } as SeriesPlatform];
+                  setPlatforms(next);
+                  autoSave({ platforms: next });
+                }} />
               {platforms.length > 0 && (
                 <div className="space-y-2">
                   {platforms.map(p => (
@@ -470,11 +805,22 @@ function ResourceManager({ series, onSave, onClose, isDark, inputCls }: Resource
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{p.name}</p>
                         <p className="text-xs text-gray-400 truncate">{p.url}</p>
+                        {p.htmlUrl && (
+                          <button onClick={() => openUrl(p.htmlUrl!)}
+                            className="mt-1 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200 transition-colors">
+                            <Globe className="w-3 h-3" />
+                            {p.htmlUrl.startsWith('data:') ? 'HTML（已上传）' : '打开网页'}
+                          </button>
+                        )}
                       </div>
                       {p.category && (
                         <span className={`text-xs px-1.5 py-0.5 rounded ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>{p.category}</span>
                       )}
-                      <button onClick={() => setPlatforms(prev => prev.filter(x => x.id !== p.id))}
+                      <button onClick={() => {
+                          const next = stateRef.current.platforms.filter(x => x.id !== p.id);
+                          setPlatforms(next);
+                          autoSave({ platforms: next });
+                        }}
                         className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -490,7 +836,11 @@ function ResourceManager({ series, onSave, onClose, isDark, inputCls }: Resource
           {tab === 'tools' && (
             <>
               <ToolForm isDark={isDark} inputCls={inputCls}
-                onAdd={t => setTools(prev => [...prev, { id: newId(), ...t } as SeriesTool])} />
+                onAdd={t => {
+                  const next = [...stateRef.current.tools, { id: newId(), ...t } as SeriesTool];
+                  setTools(next);
+                  autoSave({ tools: next });
+                }} />
               {tools.length > 0 && (
                 <div className="space-y-2">
                   {tools.map(t => (
@@ -499,13 +849,24 @@ function ResourceManager({ series, onSave, onClose, isDark, inputCls }: Resource
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{t.name}</p>
                         <p className="text-xs text-gray-400 truncate">{t.url}</p>
+                        {t.htmlUrl && (
+                          <button onClick={() => openUrl(t.htmlUrl!)}
+                            className="mt-1 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200 transition-colors">
+                            <Globe className="w-3 h-3" />
+                            {t.htmlUrl.startsWith('data:') ? 'HTML（已上传）' : '打开网页'}
+                          </button>
+                        )}
                       </div>
                       {t.isFree !== undefined && (
                         <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                           t.isFree ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' : 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
                         }`}>{t.isFree ? '免费' : '付费'}</span>
                       )}
-                      <button onClick={() => setTools(prev => prev.filter(x => x.id !== t.id))}
+                      <button onClick={() => {
+                          const next = stateRef.current.tools.filter(x => x.id !== t.id);
+                          setTools(next);
+                          autoSave({ tools: next });
+                        }}
                         className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -523,20 +884,19 @@ function ResourceManager({ series, onSave, onClose, isDark, inputCls }: Resource
               isDark={isDark}
               inputCls={inputCls}
               sections={sections}
-              onChange={setSections}
+              onChange={next => { setSections(next); autoSave({ sections: next }); }}
             />
           )}
         </div>
 
         {/* Footer */}
-        <div className={`flex justify-end gap-3 px-6 py-4 border-t flex-shrink-0 ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
-          <button onClick={onClose}
-            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${isDark ? 'border-gray-700 text-gray-300 hover:bg-gray-800' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}>
-            取消
-          </button>
-          <button onClick={handleSave}
-            className="px-4 py-2 bg-lobster-500 hover:bg-lobster-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
-            <Check className="w-4 h-4" /> 保存资源
+        <div className={`flex items-center justify-between gap-3 px-6 py-4 border-t flex-shrink-0 ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
+          <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+            添加后自动保存，随时可关闭
+          </p>
+          <button onClick={handleDone}
+            className="px-5 py-2 bg-lobster-500 hover:bg-lobster-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+            <Check className="w-4 h-4" /> 完成
           </button>
         </div>
       </div>
@@ -549,11 +909,11 @@ function PlatformForm({ isDark, inputCls, onAdd }: {
   isDark: boolean; inputCls: string;
   onAdd: (p: Omit<SeriesPlatform, 'id'>) => void;
 }) {
-  const [f, setF] = useState({ name: '', url: '', description: '', icon: '🔗', category: '' });
+  const [f, setF] = useState({ name: '', url: '', description: '', icon: '🔗', category: '', htmlUrl: '' });
   const handle = () => {
     if (!f.name.trim() || !f.url.trim()) return;
-    onAdd(f);
-    setF({ name: '', url: '', description: '', icon: '🔗', category: '' });
+    onAdd({ ...f, htmlUrl: f.htmlUrl || undefined });
+    setF({ name: '', url: '', description: '', icon: '🔗', category: '', htmlUrl: '' });
   };
   return (
     <div className={`rounded-xl border p-4 space-y-3 ${isDark ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>
@@ -567,6 +927,16 @@ function PlatformForm({ isDark, inputCls, onAdd }: {
         <input className={inputCls} placeholder="分类，如 视频平台（可选）" value={f.category} onChange={e => setF(v => ({ ...v, category: e.target.value }))} />
         <input className={inputCls} placeholder="简短说明（可选）" value={f.description} onChange={e => setF(v => ({ ...v, description: e.target.value }))} />
       </div>
+      {/* HTML 网页上传（可选） */}
+      <FileOrUrlInput
+        label="HTML"
+        labelColor="blue"
+        accept=".html,.htm"
+        value={f.htmlUrl}
+        isDark={isDark}
+        inputCls={inputCls}
+        onChange={url => setF(v => ({ ...v, htmlUrl: url }))}
+      />
       <button onClick={handle} disabled={!f.name.trim() || !f.url.trim()}
         className="w-full py-2 bg-lobster-500 hover:bg-lobster-600 disabled:opacity-40 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-colors">
         <Plus className="w-4 h-4" /> 添加
@@ -580,11 +950,11 @@ function ToolForm({ isDark, inputCls, onAdd }: {
   isDark: boolean; inputCls: string;
   onAdd: (t: Omit<SeriesTool, 'id'>) => void;
 }) {
-  const [f, setF] = useState({ name: '', url: '', description: '', icon: '⚙️', platform: '', version: '', isFree: true });
+  const [f, setF] = useState({ name: '', url: '', description: '', icon: '⚙️', platform: '', version: '', isFree: true, htmlUrl: '' });
   const handle = () => {
     if (!f.name.trim() || !f.url.trim()) return;
-    onAdd(f);
-    setF({ name: '', url: '', description: '', icon: '⚙️', platform: '', version: '', isFree: true });
+    onAdd({ ...f, htmlUrl: f.htmlUrl || undefined });
+    setF({ name: '', url: '', description: '', icon: '⚙️', platform: '', version: '', isFree: true, htmlUrl: '' });
   };
   return (
     <div className={`rounded-xl border p-4 space-y-3 ${isDark ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>
@@ -599,6 +969,16 @@ function ToolForm({ isDark, inputCls, onAdd }: {
         <input className={inputCls} placeholder="版本号（可选）" value={f.version} onChange={e => setF(v => ({ ...v, version: e.target.value }))} />
       </div>
       <input className={inputCls} placeholder="软件简介（可选）" value={f.description} onChange={e => setF(v => ({ ...v, description: e.target.value }))} />
+      {/* HTML 网页上传（可选） */}
+      <FileOrUrlInput
+        label="HTML"
+        labelColor="blue"
+        accept=".html,.htm"
+        value={f.htmlUrl}
+        isDark={isDark}
+        inputCls={inputCls}
+        onChange={url => setF(v => ({ ...v, htmlUrl: url }))}
+      />
       <div className="flex items-center gap-3">
         <label className={`flex items-center gap-2 cursor-pointer text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
           <input type="checkbox" checked={f.isFree} onChange={e => setF(v => ({ ...v, isFree: e.target.checked }))}
@@ -618,7 +998,7 @@ function ToolForm({ isDark, inputCls, onAdd }: {
 
 export const SeriesManager: React.FC = () => {
   const { isDark } = useDarkMode();
-  const { seriesList, addSeries, updateSeries, deleteSeries } = useSeries();
+  const { seriesList, addSeries, updateSeries, deleteSeries, reorderSeries } = useSeries();
   const { posts, updatePost } = usePosts();
 
   const [showForm, setShowForm] = useState(false);
@@ -626,6 +1006,39 @@ export const SeriesManager: React.FC = () => {
   const [formData, setFormData] = useState<SeriesFormData>(defaultForm);
   const [managingId, setManagingId] = useState<string | null>(null);
   const [resourceId, setResourceId] = useState<string | null>(null);
+
+  // 拖拽排序状态
+  const dragIndexRef = useRef<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (index: number) => {
+    dragIndexRef.current = index;
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = (dropIndex: number) => {
+    const fromIndex = dragIndexRef.current;
+    if (fromIndex === null || fromIndex === dropIndex) {
+      dragIndexRef.current = null;
+      setDragOverIndex(null);
+      return;
+    }
+    const newList = [...seriesList];
+    const [moved] = newList.splice(fromIndex, 1);
+    newList.splice(dropIndex, 0, moved);
+    reorderSeries(newList);
+    dragIndexRef.current = null;
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    dragIndexRef.current = null;
+    setDragOverIndex(null);
+  };
 
   const managingSeries = managingId ? seriesList.find(s => s.id === managingId) : null;
   const resourceSeries = resourceId ? seriesList.find(s => s.id === resourceId) : null;
@@ -893,6 +1306,11 @@ export const SeriesManager: React.FC = () => {
       )}
 
       {/* Series List */}
+      {seriesList.length > 1 && (
+        <p className={`text-xs flex items-center gap-1.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          <GripVertical className="w-3.5 h-3.5" /> 拖拽卡片可调整专题显示顺序
+        </p>
+      )}
       {seriesList.length === 0 ? (
         <div className={`${cardCls} p-16 text-center`}>
           <span className="text-5xl mb-4 block">📚</span>
@@ -905,15 +1323,32 @@ export const SeriesManager: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {seriesList.map(series => {
+          {seriesList.map((series, index) => {
             const postCount = series.postIds.length;
             const realPosts = series.postIds.map(id => posts.find(p => p.id === id)).filter(Boolean);
             const resCount = (series.reports?.length || 0) + (series.materials?.length || 0)
               + (series.platforms?.length || 0) + (series.tools?.length || 0);
+            const isDraggingOver = dragOverIndex === index;
             return (
-              <div key={series.id} className={`${cardCls} overflow-hidden group`}>
+              <div
+                key={series.id}
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={e => handleDragOver(e, index)}
+                onDrop={() => handleDrop(index)}
+                onDragEnd={handleDragEnd}
+                className={`${cardCls} overflow-hidden group transition-all duration-150 ${
+                  isDraggingOver
+                    ? 'ring-2 ring-lobster-400 scale-[1.02] shadow-lg'
+                    : 'cursor-grab active:cursor-grabbing'
+                }`}
+              >
                 {/* Cover */}
                 <div className={`h-24 bg-gradient-to-br ${series.coverColor || COVER_COLORS[0]} flex items-center justify-center relative`}>
+                  {/* 拖拽手柄 */}
+                  <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <GripVertical className="w-4 h-4 text-white/70" />
+                  </div>
                   <span className="text-4xl">{series.icon || '📚'}</span>
                   <span className={`absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full font-medium ${
                     series.status === 'published' ? 'bg-green-500/80 text-white' : 'bg-yellow-400 text-yellow-900'

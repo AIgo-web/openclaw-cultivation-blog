@@ -70,8 +70,6 @@ export const TagManager: React.FC = () => {
           <Home className="w-5 h-5" />
           首页
         </button>
-      </div>分类
-        </p>
       </div>
 
       {/* Add Tag */}

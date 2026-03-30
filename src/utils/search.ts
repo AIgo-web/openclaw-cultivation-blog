@@ -1,4 +1,4 @@
-import { posts } from '../data/posts';
+import type { Post } from '../types';
 
 // ✅ 安全防护常量
 const MAX_SEARCH_LENGTH = 200;
@@ -38,12 +38,12 @@ export function validateSearchInput(query: string): boolean {
 }
 
 /**
- * 搜索文章 - 全文搜索
- * ✅ 支持标题、标签、内容搜索
+ * 搜索文章 - 支持标题、摘要、标签搜索
+ * ✅ 接收动态 posts 数组，支持 localStorage 中新建的文章
  * ✅ 忽略大小写
  * ✅ 返回限制数量的结果
  */
-export function searchPosts(query: string) {
+export function searchPosts(query: string, posts: Post[]) {
   const sanitized = sanitizeSearchInput(query).toLowerCase().trim();
 
   if (!sanitized) {
@@ -53,30 +53,26 @@ export function searchPosts(query: string) {
   const searchTerms = sanitized.split(/\s+/);
 
   const results = posts
+    .filter(post => post.status === 'published')
     .map(post => {
       let score = 0;
       const titleLower = post.title.toLowerCase();
-      const contentLower = post.content.toLowerCase();
+      const excerptLower = (post.excerpt || '').toLowerCase();
+      const tagsLower = post.tags.map(t => t.toLowerCase());
 
       searchTerms.forEach(term => {
-        // 标题匹配权重高
+        // 标题匹配权重最高
         if (titleLower.includes(term)) {
           score += 10;
-          // 标题开头匹配权重更高
-          if (titleLower.startsWith(term)) {
-            score += 5;
-          }
+          if (titleLower.startsWith(term)) score += 5;
         }
-
-        // 标签匹配
-        const tagMatch = post.tags.some(t => t.toLowerCase().includes(term));
-        if (tagMatch) {
+        // 摘要匹配
+        if (excerptLower.includes(term)) {
           score += 5;
         }
-
-        // 内容匹配
-        if (contentLower.includes(term)) {
-          score += 1;
+        // 标签匹配
+        if (tagsLower.some(t => t.includes(term))) {
+          score += 3;
         }
       });
 

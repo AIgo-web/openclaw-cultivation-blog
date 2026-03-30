@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Post } from '../types';
 import { posts as initialPosts } from '../data/posts';
+import { fetchRemoteData, pushRemoteData } from '../services/persistService';
 
 interface PostsContextType {
   posts: Post[];
@@ -38,7 +39,7 @@ const getStoredPosts = (): Post[] => {
 };
 
 /**
- * 保存文章到 localStorage
+ * 保存文章到 localStorage 并异步推送到后端
  */
 const savePostsToStorage = (posts: Post[]) => {
   try {
@@ -46,15 +47,33 @@ const savePostsToStorage = (posts: Post[]) => {
   } catch (error) {
     console.error('Failed to save posts to localStorage:', error);
   }
+  // 异步推送到后端，失败不影响本地
+  pushRemoteData('posts-data', posts);
 };
 
 export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [posts, setPosts] = useState<Post[]>(() => getStoredPosts());
+  const [initialized, setInitialized] = useState(false);
 
-  // 每当 posts 更新时，自动保存到 localStorage
+  // 启动时尝试从后端拉取最新数据（后端优先）
   useEffect(() => {
+    fetchRemoteData<Post[]>('posts-data').then(remotePosts => {
+      if (remotePosts && Array.isArray(remotePosts) && remotePosts.length > 0) {
+        // 后端数据写回 localStorage
+        try {
+          localStorage.setItem('posts-data', JSON.stringify(remotePosts));
+        } catch {}
+        setPosts(remotePosts);
+      }
+      setInitialized(true);
+    });
+  }, []);
+
+  // 每当 posts 更新时，自动保存到 localStorage 并同步后端
+  useEffect(() => {
+    if (!initialized) return; // 初始加载阶段不触发写入
     savePostsToStorage(posts);
-  }, [posts]);
+  }, [posts, initialized]);
 
   const addPost = (post: Post) => {
     setPosts(prev => [...prev, post]);
@@ -84,3 +103,4 @@ export const usePosts = () => {
   }
   return context;
 };
+
