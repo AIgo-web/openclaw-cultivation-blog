@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Rss } from 'lucide-react';
 
 export default function Footer() {
@@ -25,6 +26,11 @@ export default function Footer() {
         
         <p className="text-gray-400 dark:text-gray-600 text-xs mt-3">
           Built with React + TypeScript + Tailwind CSS
+        </p>
+        <p className="text-gray-500 dark:text-gray-600 text-xs mt-2">
+          <Link to="/privacy" className="hover:text-lobster-500 dark:hover:text-lobster-400 transition-colors">隐私政策</Link>
+          <span className="mx-2">·</span>
+          <Link to="/contact" className="hover:text-lobster-500 dark:hover:text-lobster-400 transition-colors">联系我们</Link>
         </p>
       </div>
     </footer>

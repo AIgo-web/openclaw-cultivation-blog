@@ -1,4 +1,18 @@
+import { useEffect } from 'react';
+import { generatePersonSchema, injectStructuredData, setCanonicalUrl, BLOG_URL } from '../services/seoService';
+
 export default function AboutPage() {
+  // SEO + 结构化数据
+  useEffect(() => {
+    document.title = '关于 - OpenClaw 龙虾养成计划 | AI Agent 折腾笔记';
+    setCanonicalUrl(`${BLOG_URL}/about`);
+    const schema = generatePersonSchema();
+    injectStructuredData(schema, 'person-schema');
+    return () => {
+      document.getElementById('person-schema')?.remove();
+    };
+  }, []);
+
   const timeline = [
     { year: '2024.06', title: '初识 AI Agent', desc: '第一次接触 AI Agent 概念，开始研究各种本地化 AI 工具' },
     { year: '2024.09', title: '发现 OpenClaw', desc: '找到 OpenClaw，被它的本地运行 + Skill 扩展体系深深吸引' },

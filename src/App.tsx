@@ -7,6 +7,8 @@ import HomePage from './pages/HomePage';
 import PostDetailPage from './pages/PostDetailPage';
 import TagsPage from './pages/TagsPage';
 import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
+import PrivacyPage from './pages/PrivacyPage';
 import SeriesPage from './pages/SeriesPage';
 import SeriesDetailPage from './pages/SeriesDetailPage';
 import { AdminLayout } from './admin/layout/AdminLayout';
@@ -119,7 +121,7 @@ export default function App() {
                       element={
                         <div className="min-h-screen flex flex-col bg-[--color-bg] transition-colors">
                           <Navbar />
-                          <div className="flex-1">
+                          <div className="flex-1" id="main-content">
                             <Routes>
                               <Route path="/" element={<HomePage />} />
                               <Route path="/post/:id" element={<PostDetailPage />} />
@@ -127,6 +129,8 @@ export default function App() {
                               <Route path="/series" element={<SeriesPage />} />
                               <Route path="/series/:id" element={<SeriesDetailPage />} />
                               <Route path="/about" element={<AboutPage />} />
+                              <Route path="/contact" element={<ContactPage />} />
+                              <Route path="/privacy" element={<PrivacyPage />} />
                             </Routes>
                           </div>
                           <Footer />

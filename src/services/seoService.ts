@@ -3,6 +3,8 @@
  * 提供动态 Meta 标签、结构化数据、Open Graph 等 SEO 功能
  */
 
+export const BLOG_URL = 'https://aievolution.site';
+
 export interface SEOMetadata {
   title: string;
   description: string;
@@ -257,6 +259,43 @@ export function generateBreadcrumbSchema(items: Array<{ name: string; url: strin
     })),
   };
   return JSON.stringify(schema);
+}
+
+/**
+ * 生成作者个人信息（用于 About 页面）
+ */
+export function generatePersonSchema(): string {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: 'OpenClaw 折腾人',
+    url: BLOG_URL,
+    description: 'AI Agent 爱好者，OpenClaw 深度用户，专注于 AI 自动化与工作流配置',
+    sameAs: [
+      'https://github.com/AIgo-web',
+    ],
+    knowsAbout: [
+      'OpenClaw AI Agent',
+      'Skill 开发',
+      'QQ Bot 集成',
+      'Automation 自动化',
+      '工作记忆设计',
+    ],
+  };
+  return JSON.stringify(schema);
+}
+
+/**
+ * 设置 canonical URL
+ */
+export function setCanonicalUrl(url: string): void {
+  let el = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+  if (!el) {
+    el = document.createElement('link');
+    el.rel = 'canonical';
+    document.head.appendChild(el);
+  }
+  el.href = url;
 }
 
 /**

@@ -11,9 +11,19 @@ export default function Navbar() {
     { to: '/series', label: '专题' },
     { to: '/tags', label: '标签' },
     { to: '/about', label: '关于' },
+    { to: '/contact', label: '联系' },
   ];
 
   return (
+    <>
+      {/* Skip Link - 无障碍跳转 */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-lobster-500 focus:text-white focus:rounded-lg focus:font-medium focus:shadow-lg"
+      >
+        跳到主要内容
+      </a>
+
     <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#1a1d27]/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 transition-colors">
       <nav className="max-w-6xl mx-auto px-4 sm:px-6 py-3">
         {/* 主行：Logo + 导航 + 搜索(桌面) + 暗模式 */}
@@ -73,5 +83,6 @@ export default function Navbar() {
         </div>
       </nav>
     </header>
+    </>
   );
 }

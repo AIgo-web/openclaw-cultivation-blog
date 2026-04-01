@@ -74,9 +74,112 @@ export default defineConfig(({ mode }) => {
     }
   }
 
+  // 自定义插件：构建时生成 sitemap.xml 和 robots.txt
+  const seoBuildPlugin = {
+    name: 'seo-build-output',
+    async writeBundle() {
+      const blogUrl = env.VITE_BLOG_URL || 'https://openclaw.ai'
+      const now = new Date().toISOString().split('T')[0]
+      const distDir = path.resolve(__dirname, 'dist')
+
+      // 生成 sitemap.xml
+      const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>${blogUrl}/</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${blogUrl}/about</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>${blogUrl}/contact</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>${blogUrl}/privacy</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>${blogUrl}/tags</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>${blogUrl}/series</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+</urlset>`
+
+      // 生成 robots.txt（针对国内外搜索引擎优化）
+      const robotsTxt = `# ============================================
+# 国内搜索引擎蜘蛛配置
+# ============================================
+
+# 百度蜘蛛
+User-agent: Baiduspider
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Crawl-delay: 10
+
+# 360 搜索蜘蛛
+User-agent: 360Spider
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Crawl-delay: 10
+
+# 搜狗蜘蛛
+User-agent: Sogou Spider
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Crawl-delay: 10
+
+# 神马搜索蜘蛛（移动端）
+User-agent: YisouSpider
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Crawl-delay: 10
+
+# 通用配置（兜底）
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+# Sitemap
+Sitemap: ${blogUrl}/sitemap.xml
+
+# 抓取延迟
+Crawl-delay: 1
+`
+
+      fs.writeFileSync(path.join(distDir, 'sitemap.xml'), sitemapXml, 'utf-8')
+      fs.writeFileSync(path.join(distDir, 'robots.txt'), robotsTxt, 'utf-8')
+      console.log('[seo-build] sitemap.xml and robots.txt generated')
+    }
+  }
+
   return {
     base,
-    plugins: [react(), inject404Plugin, rssFeedPlugin],
+    plugins: [react(), inject404Plugin, rssFeedPlugin, seoBuildPlugin],
     server: {
       host: true,
       port: 5173,

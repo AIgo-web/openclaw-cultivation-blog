@@ -14,6 +14,7 @@ import { CommentSection } from '../components/CommentSection';
 import { getTagColor } from '../data/tags';
 import { exportPost } from '../utils/exportPost';
 import { Donation } from '../components/Donation';
+import { setCanonicalUrl, generateArticleSchema, injectStructuredData, BLOG_URL } from '../services/seoService';
 
 export default function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -92,9 +93,51 @@ export default function PostDetailPage() {
     }
     if (post.coverImage) ogImgEl.content = post.coverImage;
 
+    // og:url + canonical
+    let ogUrlEl = document.querySelector<HTMLMetaElement>('meta[property="og:url"]');
+    if (!ogUrlEl) {
+      ogUrlEl = document.createElement('meta');
+      ogUrlEl.setAttribute('property', 'og:url');
+      document.head.appendChild(ogUrlEl);
+    }
+    const articleUrl = `${BLOG_URL}/post/${post.id}`;
+    ogUrlEl.content = articleUrl;
+    setCanonicalUrl(articleUrl);
+
+    // og:type + article metadata
+    let ogTypeEl = document.querySelector<HTMLMetaElement>('meta[property="og:type"]');
+    if (!ogTypeEl) {
+      ogTypeEl = document.createElement('meta');
+      ogTypeEl.setAttribute('property', 'og:type');
+      document.head.appendChild(ogTypeEl);
+    }
+    ogTypeEl.content = 'article';
+
+    const pubDate = new Date(post.date).toISOString();
+    let pubTimeEl = document.querySelector<HTMLMetaElement>('meta[property="article:published_time"]');
+    if (!pubTimeEl) {
+      pubTimeEl = document.createElement('meta');
+      pubTimeEl.setAttribute('property', 'article:published_time');
+      document.head.appendChild(pubTimeEl);
+    }
+    pubTimeEl.content = pubDate;
+
+    // Article JSON-LD schema
+    const articleSchema = generateArticleSchema({
+      title: post.title,
+      description: post.summary,
+      url: articleUrl,
+      image: post.coverImage,
+      author: 'OpenClaw 折腾人',
+      publishedTime: pubDate,
+      tags: post.tags,
+    });
+    injectStructuredData(articleSchema, 'article-schema');
+
     return () => {
       document.title = prevTitle;
       if (descEl) descEl.content = prevDesc;
+      document.getElementById('article-schema')?.remove();
     };
   }, [post]);
 

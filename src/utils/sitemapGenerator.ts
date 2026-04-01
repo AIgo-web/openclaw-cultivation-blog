@@ -37,6 +37,22 @@ export function generateSitemapXML(posts: Post[], siteUrl: string = BLOG_URL): s
     priority: 0.6,
   });
 
+  // 联系页面
+  urls.push({
+    url: `${siteUrl}/contact`,
+    lastModified: now,
+    changeFrequency: 'monthly',
+    priority: 0.5,
+  });
+
+  // 隐私政策页面
+  urls.push({
+    url: `${siteUrl}/privacy`,
+    lastModified: now,
+    changeFrequency: 'yearly',
+    priority: 0.3,
+  });
+
   // 标签页面
   urls.push({
     url: `${siteUrl}/tags`,
@@ -62,16 +78,51 @@ export function generateSitemapXML(posts: Post[], siteUrl: string = BLOG_URL): s
 
 /**
  * 生成 robots.txt
+ * 针对国内外搜索引擎优化
  */
 export function generateRobotsTxt(siteUrl: string): string {
-  return `User-agent: *
+  return `# ============================================
+# 国内搜索引擎蜘蛛配置
+# ============================================
+
+# 百度蜘蛛
+User-agent: Baiduspider
 Allow: /
 Disallow: /admin/
+Disallow: /api/
+Crawl-delay: 10
+
+# 360 搜索蜘蛛
+User-agent: 360Spider
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Crawl-delay: 10
+
+# 搜狗蜘蛛
+User-agent: Sogou Spider
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Crawl-delay: 10
+
+# 神马搜索蜘蛛（移动端）
+User-agent: YisouSpider
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Crawl-delay: 10
+
+# 通用配置（兜底）
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
 
 # Sitemap
 Sitemap: ${siteUrl}/sitemap.xml
 
-# Crawl-delay (optional, be nice to small sites)
+# 抓取延迟
 Crawl-delay: 1
 `;
 }

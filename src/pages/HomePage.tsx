@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PostCard from '../components/PostCard';
 import { usePosts } from '../contexts/PostsContext';
 import { tags, getTagColor } from '../data/tags';
@@ -6,13 +6,59 @@ import { categories } from '../data/categories';
 import { Link } from 'react-router-dom';
 import HotSeriesWidget from '../components/HotSeriesWidget';
 
+const BLOG_NAME = 'OpenClaw 龙虾养成计划';
+const BLOG_DESC = '记录 OpenClaw AI Agent 的折腾历程、技巧心得与踩坑实录，涵盖 Skill 开发、QQ Bot 集成、Automation 自动化配置与工作记忆设计。';
+const BLOG_URL = 'https://aievolution.site';
+
 const PAGE_SIZE = 6;
+
+// SEO 辅助函数
+function setMeta(name: string, content: string, type: 'name' | 'property' = 'name'): void {
+  if (!content) return;
+  const selector = type === 'property'
+    ? `meta[property="${name}"]`
+    : `meta[name="${name}"]`;
+  let el = document.querySelector(selector) as HTMLMetaElement | null;
+  if (!el) {
+    el = document.createElement('meta');
+    if (type === 'property') el.setAttribute('property', name);
+    else el.setAttribute('name', name);
+    document.head.appendChild(el);
+  }
+  el.content = content;
+}
+
+function setCanonical(url: string): void {
+  let el = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+  if (!el) {
+    el = document.createElement('link');
+    el.rel = 'canonical';
+    document.head.appendChild(el);
+  }
+  el.href = url;
+}
 
 export default function HomePage() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const { posts } = usePosts();
+
+  // SEO 元数据初始化
+  useEffect(() => {
+    document.title = `${BLOG_NAME} | AI Agent 折腾笔记与技能开发教程`;
+    setMeta('description', BLOG_DESC);
+    setMeta('author', 'OpenClaw 折腾人');
+    setMeta('og:title', `${BLOG_NAME} | AI Agent 折腾笔记与技能开发教程`, 'property');
+    setMeta('og:description', BLOG_DESC, 'property');
+    setMeta('og:url', BLOG_URL, 'property');
+    setMeta('og:type', 'website', 'property');
+    setMeta('og:site_name', BLOG_NAME, 'property');
+    setMeta('twitter:card', 'summary_large_image', 'name');
+    setMeta('twitter:title', `${BLOG_NAME} | AI Agent 折腾笔记与技能开发教程`, 'name');
+    setMeta('twitter:description', BLOG_DESC, 'name');
+    setCanonical(BLOG_URL);
+  }, []);
 
   const filteredPosts = posts.filter(p => {
     const isPublished = !p.status || p.status === 'published';
