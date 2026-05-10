@@ -19,8 +19,8 @@ interface RSSFeedProps {
 export const RSSFeed: React.FC<RSSFeedProps> = ({
   posts,
   blogInfo = {
-    title: 'OpenClaw 龙虾养成计划',
-    description: '记录 OpenClaw AI Agent 的折腾历程',
+    title: 'Clawcode龙虾养成计划',
+    description: '记录 Clawcode AI Agent 的折腾历程',
     link: 'https://openclaw.ai',
   },
 }) => {

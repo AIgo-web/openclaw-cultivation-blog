@@ -7,7 +7,7 @@ export const posts: Post[] = [
     "summary": "第一次接触 OpenClaw，从下载安装到跑通第一次 AI 对话，踩了不少坑。这篇文章记录完整的入门流程，帮你少走弯路，快速把这只龙虾养活。",
     "tags": [
       "新手入门",
-      "OpenClaw",
+      "Clawcode",
       "环境配置"
     ],
     "date": "2026-03-20",
@@ -23,7 +23,7 @@ export const posts: Post[] = [
     "summary": "Skill 是 OpenClaw 的超能力扩展包，安装一个 Skill 就能让 Agent 掌握一项新技能。本文详解 Skill 的工作原理、安装方式，以及如何自己写一个 Skill。",
     "tags": [
       "Skill开发",
-      "OpenClaw",
+      "Clawcode",
       "进阶技巧"
     ],
     "date": "2026-03-18",
@@ -35,11 +35,11 @@ export const posts: Post[] = [
   },
   {
     "id": "3",
-    "title": "把 OpenClaw Agent 接入 QQ Bot：完整实战",
+    "title": "把 Clawcode Agent 接入 QQ Bot：完整实战",
     "summary": "通过 OpenClaw 的 QQ Bot 渠道，让 AI Agent 直接在 QQ 中响应消息。本文记录从申请 AppID 到消息收发全流程，包含 known-users.json 的 openid 配置技巧。",
     "tags": [
       "QQ Bot",
-      "OpenClaw",
+      "Clawcode",
       "渠道集成"
     ],
     "date": "2026-03-15",
@@ -47,7 +47,7 @@ export const posts: Post[] = [
     "category": "tech",
     "coverColor": "from-blue-400 to-indigo-500",
     "status": "published" as const,
-    "content": "# 把 OpenClaw Agent 接入 QQ Bot\n\n## 整体架构\n\n```\nQQ 用户发消息\n    ↓\nQQ Bot 平台（腾讯开放平台）\n    ↓\nOpenClaw QQ Bot 渠道\n    ↓\nOpenClaw Agent 处理\n    ↓\n回复消息\n```\n\n## 前置准备\n\n### 1. 申请 QQ Bot AppID\n\n前往 [QQ 开放平台](https://q.qq.com) 创建应用，获取：\n- `AppID`\n- `AppSecret` / `Token`\n\n### 2. 配置 OpenClaw\n\n编辑 `~/.openclaw/openclaw.json`，添加 QQ Bot 渠道配置：\n\n```json\n{\n  \"channels\": {\n    \"qqbot\": {\n      \"enabled\": true,\n      \"appId\": \"你的AppID\",\n      \"appSecret\": \"你的AppSecret\"\n    }\n  }\n}\n```\n\n## 用户 OpenID 管理\n\nQQ Bot 使用 openid 而非 QQ 号来标识用户。第一次收到某用户消息后，OpenClaw 会自动将其 openid 记录到：\n\n```\n~/.openclaw/qqbot/data/known-users.json\n```\n\n文件格式：\n\n```json\n{\n  \"users\": [\n    {\n      \"openid\": \"B7F7B394E13E2DAA60EC841AA38491D4\",\n      \"nickname\": \"尧哥\",\n      \"firstSeen\": \"2026-03-10T08:00:00\"\n    }\n  ]\n}\n```\n\n## 主动推送消息\n\n已知 openid 后，可以通过脚本主动向用户推送消息：\n\n```python\n# qq_push.py\nimport requests\nimport json\n\nOPENID = \"B7F7B394E13E2DAA60EC841AA38491D4\"\nAPP_ID = \"1903506261\"\n\ndef push_message(content: str):\n    # 调用 OpenClaw 内置推送接口\n    url = \"http://localhost:PORT/api/push\"\n    payload = {\n        \"channel\": \"qqbot\",\n        \"openid\": OPENID,\n        \"content\": content\n    }\n    resp = requests.post(url, json=payload)\n    return resp.json()\n\npush_message(\"🦞 Agent 定时任务执行完成！\")\n```\n\n## 实际效果\n\n接入成功后，在 QQ 中 @ Bot 或私聊，Agent 会直接响应，支持：\n- 自然语言对话\n- 执行 Skill 任务\n- 返回文件、图片等富媒体\n\n---\n"
+    "content": "# 把 Clawcode Agent 接入 QQ Bot\n\n## 整体架构\n\n```\nQQ 用户发消息\n    ↓\nQQ Bot 平台（腾讯开放平台）\n    ↓\nOpenClaw QQ Bot 渠道\n    ↓\nClawcode Agent 处理\n    ↓\n回复消息\n```\n\n## 前置准备\n\n### 1. 申请 QQ Bot AppID\n\n前往 [QQ 开放平台](https://q.qq.com) 创建应用，获取：\n- `AppID`\n- `AppSecret` / `Token`\n\n### 2. 配置 OpenClaw\n\n编辑 `~/.openclaw/openclaw.json`，添加 QQ Bot 渠道配置：\n\n```json\n{\n  \"channels\": {\n    \"qqbot\": {\n      \"enabled\": true,\n      \"appId\": \"你的AppID\",\n      \"appSecret\": \"你的AppSecret\"\n    }\n  }\n}\n```\n\n## 用户 OpenID 管理\n\nQQ Bot 使用 openid 而非 QQ 号来标识用户。第一次收到某用户消息后，OpenClaw 会自动将其 openid 记录到：\n\n```\n~/.openclaw/qqbot/data/known-users.json\n```\n\n文件格式：\n\n```json\n{\n  \"users\": [\n    {\n      \"openid\": \"B7F7B394E13E2DAA60EC841AA38491D4\",\n      \"nickname\": \"尧哥\",\n      \"firstSeen\": \"2026-03-10T08:00:00\"\n    }\n  ]\n}\n```\n\n## 主动推送消息\n\n已知 openid 后，可以通过脚本主动向用户推送消息：\n\n```python\n# qq_push.py\nimport requests\nimport json\n\nOPENID = \"B7F7B394E13E2DAA60EC841AA38491D4\"\nAPP_ID = \"1903506261\"\n\ndef push_message(content: str):\n    # 调用 OpenClaw 内置推送接口\n    url = \"http://localhost:PORT/api/push\"\n    payload = {\n        \"channel\": \"qqbot\",\n        \"openid\": OPENID,\n        \"content\": content\n    }\n    resp = requests.post(url, json=payload)\n    return resp.json()\n\npush_message(\"🦞 Agent 定时任务执行完成！\")\n```\n\n## 实际效果\n\n接入成功后，在 QQ 中 @ Bot 或私聊，Agent 会直接响应，支持：\n- 自然语言对话\n- 执行 Skill 任务\n- 返回文件、图片等富媒体\n\n---\n"
   },
   {
     "id": "4",
@@ -55,7 +55,7 @@ export const posts: Post[] = [
     "summary": "OpenClaw 支持定时自动化任务（Automation），让 Agent 在无人值守时按计划执行工作。本文详解 RRULE 规则写法、任务配置格式以及常见场景实例。",
     "tags": [
       "Automation",
-      "OpenClaw",
+      "Clawcode",
       "自动化"
     ],
     "date": "2026-03-10",
@@ -71,7 +71,7 @@ export const posts: Post[] = [
     "summary": "默认情况下 Agent 每次对话都是从零开始的。通过 OpenClaw 的工作记忆系统，你可以让 Agent 记住你的偏好、项目上下文和重要决策，打造真正有\"记忆\"的 AI 助手。",
     "tags": [
       "工作记忆",
-      "OpenClaw",
+      "Clawcode",
       "进阶技巧"
     ],
     "date": "2026-03-05",
@@ -79,7 +79,7 @@ export const posts: Post[] = [
     "category": "tech",
     "coverColor": "from-purple-400 to-pink-400",
     "status": "published" as const,
-    "content": "# OpenClaw 工作记忆系统\n\n## 为什么需要记忆？\n\n没有记忆的 Agent 就像每天早上起床都忘了自己是谁——每次都要重新自我介绍，效率极低。\n\nOpenClaw 的工作记忆系统通过 Markdown 文件实现跨会话的上下文持久化。\n\n## 记忆文件结构\n\n```\n{项目}/.workbuddy/memory/\n├── MEMORY.md          # 长期记忆（精炼的核心信息）\n├── 2026-03-23.md      # 今日工作日志（按日期）\n├── 2026-03-22.md\n└── ...\n```\n\n## MEMORY.md：长期记忆\n\n存放跨越多天都有价值的信息：\n\n```markdown\n# 项目偏好\n\n## 技术栈偏好\n- 前端：React + TypeScript + Tailwind CSS\n- 后端：Python FastAPI\n- 数据库：PostgreSQL\n\n## 重要约定\n- 代码注释使用中文\n- Git commit 信息格式：type(scope): description\n\n## 已知配置\n- OpenClaw AppID: 1903506261\n- QQ 推送目标: openid B7F7B394...\n```\n\n## 日志文件：短期记忆\n\n每天的工作记录，追加写入：\n\n```markdown\n# 2026-03-23\n\n## 14:30 完成博客网站开发\n- 项目路径：~/WorkBuddy/lobster-blog\n- 技术栈：React + Vite + Tailwind\n- 已启动 dev server: http://localhost:5173\n\n## 15:00 修复主题描述\n- 将博客主题从\"水产养殖\"改为\"OpenClaw 技术博客\"\n```\n\n## Agent 读写记忆的时机\n\n**读取时机**：\n- 会话开始时，任务涉及历史上下文\n- 回答\"上次做了什么\"类问题前\n\n**写入时机**：\n- 完成一项实质性工作后\n- 用户告知重要偏好或约定\n- 做出重要技术决策后\n\n## 实用技巧\n\n告诉 Agent 记住某件事：\n\n```\n\"记住：我的数据库密码存在 ~/.env 文件里，不要直接写在代码中\"\n\"记住：这个项目用 pnpm 而不是 npm\"\n```\n\nAgent 会将其写入 MEMORY.md，下次自动读取。\n\n---\n\n*记忆系统是让 OpenClaw Agent 越用越顺手的关键。好好利用它！*\n"
+    "content": "# OpenClaw 工作记忆系统\n\n## 为什么需要记忆？\n\n没有记忆的 Agent 就像每天早上起床都忘了自己是谁——每次都要重新自我介绍，效率极低。\n\nOpenClaw 的工作记忆系统通过 Markdown 文件实现跨会话的上下文持久化。\n\n## 记忆文件结构\n\n```\n{项目}/.workbuddy/memory/\n├── MEMORY.md          # 长期记忆（精炼的核心信息）\n├── 2026-03-23.md      # 今日工作日志（按日期）\n├── 2026-03-22.md\n└── ...\n```\n\n## MEMORY.md：长期记忆\n\n存放跨越多天都有价值的信息：\n\n```markdown\n# 项目偏好\n\n## 技术栈偏好\n- 前端：React + TypeScript + Tailwind CSS\n- 后端：Python FastAPI\n- 数据库：PostgreSQL\n\n## 重要约定\n- 代码注释使用中文\n- Git commit 信息格式：type(scope): description\n\n## 已知配置\n- OpenClaw AppID: 1903506261\n- QQ 推送目标: openid B7F7B394...\n```\n\n## 日志文件：短期记忆\n\n每天的工作记录，追加写入：\n\n```markdown\n# 2026-03-23\n\n## 14:30 完成博客网站开发\n- 项目路径：~/WorkBuddy/lobster-blog\n- 技术栈：React + Vite + Tailwind\n- 已启动 dev server: http://localhost:5173\n\n## 15:00 修复主题描述\n- 将博客主题从\"水产养殖\"改为\"OpenClaw 技术博客\"\n```\n\n## Agent 读写记忆的时机\n\n**读取时机**：\n- 会话开始时，任务涉及历史上下文\n- 回答\"上次做了什么\"类问题前\n\n**写入时机**：\n- 完成一项实质性工作后\n- 用户告知重要偏好或约定\n- 做出重要技术决策后\n\n## 实用技巧\n\n告诉 Agent 记住某件事：\n\n```\n\"记住：我的数据库密码存在 ~/.env 文件里，不要直接写在代码中\"\n\"记住：这个项目用 pnpm 而不是 npm\"\n```\n\nAgent 会将其写入 MEMORY.md，下次自动读取。\n\n---\n\n*记忆系统是让 Clawcode Agent 越用越顺手的关键。好好利用它！*\n"
   },
   {
     "id": "post-1774322390982",

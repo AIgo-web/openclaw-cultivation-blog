@@ -47,10 +47,10 @@ export const Settings: React.FC = () => {
   };
 
   const [settings, setSettings] = useState<BlogSettings>({
-    title: 'OpenClaw 龙虾养成计划',
-    subtitle: '记录 OpenClaw AI Agent 的折腾历程',
-    author: 'OpenClaw 折腾人',
-    description: '记录 OpenClaw AI Agent 的折腾历程、技巧心得与踩坑实录。',
+    title: 'Clawcode龙虾养成计划',
+    subtitle: '记录 Clawcode AI Agent 的折腾历程',
+    author: 'Clawcode 折腾人',
+    description: '记录 Clawcode AI Agent 的折腾历程、技巧心得与踩坑实录。',
   });
 
   // ── GitHub 发布配置 ──────────────────────────────────

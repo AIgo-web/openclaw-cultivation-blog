@@ -6,8 +6,8 @@ import { categories } from '../data/categories';
 import { Link } from 'react-router-dom';
 import HotSeriesWidget from '../components/HotSeriesWidget';
 
-const BLOG_NAME = 'OpenClaw 龙虾养成计划';
-const BLOG_DESC = '记录 OpenClaw AI Agent 的折腾历程、技巧心得与踩坑实录，涵盖 Skill 开发、QQ Bot 集成、Automation 自动化配置与工作记忆设计。';
+const BLOG_NAME = 'Clawcode龙虾养成计划';
+const BLOG_DESC = '记录 Clawcode AI Agent 的折腾历程、技巧心得与踩坑实录，涵盖 Skill 开发、QQ Bot 集成、Automation 自动化配置与工作记忆设计。';
 const BLOG_URL = 'https://aievolution.site';
 
 const PAGE_SIZE = 6;
@@ -48,7 +48,7 @@ export default function HomePage() {
   useEffect(() => {
     document.title = `${BLOG_NAME} | AI Agent 折腾笔记与技能开发教程`;
     setMeta('description', BLOG_DESC);
-    setMeta('author', 'OpenClaw 折腾人');
+    setMeta('author', 'Clawcode 折腾人');
     setMeta('og:title', `${BLOG_NAME} | AI Agent 折腾笔记与技能开发教程`, 'property');
     setMeta('og:description', BLOG_DESC, 'property');
     setMeta('og:url', BLOG_URL, 'property');
@@ -91,7 +91,7 @@ export default function HomePage() {
           OpenClaw<span className="text-lobster-500">龙虾养成计划</span>
         </h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base max-w-xl mx-auto leading-relaxed px-2">
-          记录 OpenClaw AI Agent 的折腾历程、技巧心得与踩坑实录。
+          记录 Clawcode AI Agent 的折腾历程、技巧心得与踩坑实录。
           从配置到开发，从 Skill 扩展到自动化工作流，一起把这只龙虾养大。
         </p>
 

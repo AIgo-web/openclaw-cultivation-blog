@@ -4,7 +4,7 @@ import { generatePersonSchema, injectStructuredData, setCanonicalUrl, BLOG_URL }
 export default function AboutPage() {
   // SEO + 结构化数据
   useEffect(() => {
-    document.title = '关于 - OpenClaw 龙虾养成计划 | AI Agent 折腾笔记';
+    document.title = '关于 - Clawcode龙虾养成计划 | AI Agent 折腾笔记';
     setCanonicalUrl(`${BLOG_URL}/about`);
     const schema = generatePersonSchema();
     injectStructuredData(schema, 'person-schema');
@@ -16,10 +16,10 @@ export default function AboutPage() {
   const timeline = [
     { year: '2024.06', title: '初识 AI Agent', desc: '第一次接触 AI Agent 概念，开始研究各种本地化 AI 工具' },
     { year: '2024.09', title: '发现 OpenClaw', desc: '找到 OpenClaw，被它的本地运行 + Skill 扩展体系深深吸引' },
-    { year: '2024.11', title: '折腾 QQ Bot', desc: '成功将 OpenClaw Agent 接入 QQ，实现消息推送与智能回复' },
+    { year: '2024.11', title: '折腾 QQ Bot', desc: '成功将 Clawcode Agent 接入 QQ，实现消息推送与智能回复' },
     { year: '2025.01', title: '开始写 Skill', desc: '自己动手写第一个 Skill，逐渐理解 Agent 扩展的完整机制' },
     { year: '2025.06', title: '搭建自动化体系', desc: '用 Automation + QQ Push 构建了完整的个人自动化工作流' },
-    { year: '2026.03', title: '创建这个博客', desc: '决定把踩过的坑和积累的经验整理成文章，分享给同样折腾 OpenClaw 的人' },
+    { year: '2026.03', title: '创建这个博客', desc: '决定把踩过的坑和积累的经验整理成文章，分享给同样折腾 Clawcode 的人' },
   ];
 
   const skills = [
@@ -39,7 +39,7 @@ export default function AboutPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-              OpenClaw 折腾人
+              Clawcode 折腾人
             </h1>
             <p className="text-lobster-500 dark:text-lobster-400 text-sm font-medium mb-3">
               AI Agent 爱好者 · OpenClaw 深度用户
@@ -62,8 +62,8 @@ export default function AboutPage() {
         </h2>
         <div className="card p-6">
           <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
-            <strong className="text-gray-800 dark:text-gray-200">OpenClaw 龙虾养成计划</strong>
-            专注于 OpenClaw AI Agent 的使用技巧与深度折腾，内容涵盖：
+            <strong className="text-gray-800 dark:text-gray-200">Clawcode龙虾养成计划</strong>
+            专注于 Clawcode AI Agent 的使用技巧与深度折腾，内容涵盖：
           </p>
           <ul className="space-y-2 text-gray-600 dark:text-gray-400">
             {[
@@ -145,11 +145,11 @@ export default function AboutPage() {
         </h2>
         <div className="card p-6">
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            如果你也在玩 OpenClaw，或者有什么折腾心得想交流，欢迎来找我！
+            如果你也在玩 Clawcode，或者有什么折腾心得想交流，欢迎来找我！
           </p>
           <div className="flex flex-wrap gap-3">
             {[
-              { icon: '🤖', label: 'OpenClaw', value: '通过 QQ Bot 直接对话' },
+              { icon: '🤖', label: 'Clawcode', value: '通过 QQ Bot 直接对话' },
               { icon: '📝', label: '留言', value: '文章评论区见' },
             ].map(contact => (
               <div

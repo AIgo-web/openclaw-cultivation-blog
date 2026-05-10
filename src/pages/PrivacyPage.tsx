@@ -6,7 +6,7 @@ import { setCanonicalUrl, BLOG_URL } from '../services/seoService';
 
 export default function PrivacyPage() {
   useEffect(() => {
-    document.title = '隐私政策 - OpenClaw 龙虾养成计划';
+    document.title = '隐私政策 - Clawcode龙虾养成计划';
     setCanonicalUrl(`${BLOG_URL}/privacy`);
   }, []);
   return (

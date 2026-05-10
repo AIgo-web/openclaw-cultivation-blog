@@ -54,7 +54,7 @@ export default function PostDetailPage() {
   useEffect(() => {
     if (!post) return;
     const prevTitle = document.title;
-    document.title = `${post.title} - OpenClaw 龙虾养成计划`;
+    document.title = `${post.title} - Clawcode龙虾养成计划`;
 
     // description
     let descEl = document.querySelector<HTMLMetaElement>('meta[name="description"]');
@@ -128,7 +128,7 @@ export default function PostDetailPage() {
       description: post.summary,
       url: articleUrl,
       image: post.coverImage,
-      author: 'OpenClaw 折腾人',
+      author: 'Clawcode 折腾人',
       publishedTime: pubDate,
       tags: post.tags,
     });
@@ -331,7 +331,7 @@ export default function PostDetailPage() {
 
         {/* 打赏 */}
         <div className="flex flex-wrap items-center justify-center py-4 mb-8">
-          <Donation author="OpenClaw" />
+          <Donation author="Clawcode" />
         </div>
 
         {/* Comment Section */}

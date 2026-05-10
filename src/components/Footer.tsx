@@ -7,7 +7,7 @@ export default function Footer() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
         <p className="text-gray-500 dark:text-gray-400 text-sm">
           <span className="text-xl mr-2">🦞</span>
-          OpenClaw 龙虾养成计划 · 记录每一次 AI Agent 进化的故事
+          Clawcode龙虾养成计划 · 记录每一次 AI Agent 进化的故事
         </p>
         
         {/* RSS 订阅 */}

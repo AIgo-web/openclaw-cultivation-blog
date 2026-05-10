@@ -1193,7 +1193,7 @@ export const SeriesManager: React.FC = () => {
               <div>
                 <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>专题简介</label>
                 <textarea value={formData.description} onChange={e => setFormData(f => ({ ...f, description: e.target.value }))}
-                  placeholder="用 1-3 句话介绍这个专题的核心价值&#10;例如：系统梳理 OpenClaw Agent 的安装与配置流程，从零开始帮助新手快速上手，涵盖环境搭建、常见问题与最佳实践。"
+                  placeholder="用 1-3 句话介绍这个专题的核心价值&#10;例如：系统梳理 Clawcode Agent 的安装与配置流程，从零开始帮助新手快速上手，涵盖环境搭建、常见问题与最佳实践。"
                   rows={4} className={`${inputCls} resize-none`} />
                 <p className={`text-xs mt-1.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>建议 30–100 字，说清楚「学什么」「适合谁」「能收获什么」</p>
               </div>

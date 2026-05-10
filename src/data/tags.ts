@@ -2,7 +2,7 @@ import type { Tag } from '../types';
 
 // 默认标签列表
 const defaultTags: Tag[] = [
-  { id: 'openclaw', name: 'OpenClaw', count: 5, color: 'bg-lobster-100 text-lobster-700 dark:bg-lobster-900/30 dark:text-lobster-300' },
+  { id: 'openclaw', name: 'Clawcode', count: 5, color: 'bg-lobster-100 text-lobster-700 dark:bg-lobster-900/30 dark:text-lobster-300' },
   { id: 'beginner', name: '新手入门', count: 1, color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
   { id: 'config', name: '环境配置', count: 1, color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
   { id: 'skill', name: 'Skill开发', count: 1, color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },

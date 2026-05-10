@@ -12,7 +12,7 @@ interface DonationProps {
 }
 
 export const Donation: React.FC<DonationProps> = ({
-  author = 'OpenClaw',
+  author = 'Clawcode',
   className = '',
 }) => {
   // 从 localStorage 读取收款码

@@ -52,8 +52,8 @@ export default defineConfig(({ mode }) => {
     configureServer(server: any) {
       server.middlewares.use('/feed.xml', (_req: any, res: any) => {
         const blogUrl = env.VITE_BLOG_URL || 'https://openclaw.ai'
-        const blogTitle = env.VITE_BLOG_TITLE || 'OpenClaw 龙虾养成计划'
-        const blogDesc = env.VITE_BLOG_DESC || '记录 OpenClaw AI Agent 的折腾历程'
+        const blogTitle = env.VITE_BLOG_TITLE || 'Clawcode龙虾养成计划'
+        const blogDesc = env.VITE_BLOG_DESC || '记录 Clawcode AI Agent 的折腾历程'
 
         const rssContent = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
