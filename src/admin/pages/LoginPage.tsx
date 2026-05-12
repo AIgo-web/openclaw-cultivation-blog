@@ -22,7 +22,7 @@ export const LoginPage: React.FC = () => {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    if (login(username, password)) {
+    if (await login(username, password)) {
       navigate(from, { replace: true });
     } else {
       setError('用户名或密码错误');

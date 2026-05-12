@@ -1,28 +1,20 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { hashPassword, verifyPassword, generateSalt, formatStoredHash, parseStoredHash } from '../../utils/crypto';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   username: string | null;
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
-  changePassword: (currentPassword: string, newPassword: string) => { success: boolean; message: string };
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// 密码存储 key
-const PASSWORD_KEY = 'adminPassword';
+// 密码存储 key（存储格式：salt:hash）
+const PASSWORD_KEY = 'adminPasswordHash';
 const DEFAULT_PASSWORD = 'admin123';
-
-// 获取当前有效密码（优先读 localStorage，fallback 默认值）
-const getStoredPassword = (): string => {
-  try {
-    return localStorage.getItem(PASSWORD_KEY) || DEFAULT_PASSWORD;
-  } catch {
-    return DEFAULT_PASSWORD;
-  }
-};
 
 // 会话配置
 const SESSION_KEY = 'adminSession';
@@ -31,6 +23,32 @@ const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 分钟（毫秒）
 interface SessionData {
   isAuthenticated: boolean;
   loginTime: number;
+}
+
+/**
+ * 初始化默认密码（首次使用时）
+ * 生成随机盐值并哈希默认密码
+ */
+async function initDefaultPassword(): Promise<void> {
+  const existing = localStorage.getItem(PASSWORD_KEY);
+  if (!existing) {
+    const salt = generateSalt();
+    const hash = await hashPassword(DEFAULT_PASSWORD, salt);
+    localStorage.setItem(PASSWORD_KEY, formatStoredHash(salt, hash));
+  }
+}
+
+/**
+ * 获取存储的密码哈希信息
+ */
+function getStoredPasswordHash(): { salt: string; hash: string } | null {
+  try {
+    const stored = localStorage.getItem(PASSWORD_KEY);
+    if (!stored) return null;
+    return parseStoredHash(stored);
+  } catch {
+    return null;
+  }
 }
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -88,8 +106,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   useEffect(() => {
-    // 应用加载时恢复会话
-    restoreSession();
+    // 应用加载时初始化密码并恢复会话
+    initDefaultPassword().then(() => restoreSession());
 
     // 定期检查会话是否过期（每 30 秒检查一次）
     const sessionCheckInterval = setInterval(() => {
@@ -126,8 +144,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => window.removeEventListener('focus', handleFocus);
   }, [isAuthenticated]);
 
-  const login = (username: string, password: string): boolean => {
-    if (username === 'admin' && password === getStoredPassword()) {
+  const login = useCallback(async (username: string, password: string): Promise<boolean> => {
+    const hashInfo = getStoredPasswordHash();
+    if (!hashInfo) return false;
+
+    const valid = await verifyPassword(password, hashInfo.salt, hashInfo.hash);
+    if (username === 'admin' && valid) {
       const session: SessionData & { username: string } = {
         isAuthenticated: true,
         loginTime: Date.now(),
@@ -139,22 +161,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return true;
     }
     return false;
-  };
+  }, []);
 
-  const changePassword = (currentPassword: string, newPassword: string): { success: boolean; message: string } => {
-    if (currentPassword !== getStoredPassword()) {
-      return { success: false, message: '当前密码不正确' };
-    }
-    if (newPassword.length < 6) {
-      return { success: false, message: '新密码至少 6 位' };
-    }
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+    const hashInfo = getStoredPasswordHash();
+    if (!hashInfo) return { success: false, message: '密码数据异常，请刷新页面重试' };
+
+    const currentValid = await verifyPassword(currentPassword, hashInfo.salt, hashInfo.hash);
+    if (!currentValid) return { success: false, message: '当前密码不正确' };
+
+    if (newPassword.length < 6) return { success: false, message: '新密码至少 6 位' };
+
     try {
-      localStorage.setItem(PASSWORD_KEY, newPassword);
+      const newSalt = generateSalt();
+      const newHash = await hashPassword(newPassword, newSalt);
+      localStorage.setItem(PASSWORD_KEY, formatStoredHash(newSalt, newHash));
       return { success: true, message: '密码修改成功，下次登录请使用新密码' };
     } catch {
       return { success: false, message: '保存失败，请重试' };
     }
-  };
+  }, []);
 
   const logout = () => {
     localStorage.removeItem(SESSION_KEY);
@@ -177,5 +203,4 @@ export const useAuth = () => {
   return context;
 };
 
-// 添加导出以便其他组件使用
 export default AuthContext;

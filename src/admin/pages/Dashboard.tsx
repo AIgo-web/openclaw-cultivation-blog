@@ -6,7 +6,24 @@ import { useDarkMode } from '../../hooks/useDarkMode';
 import { usePosts } from '../../contexts/PostsContext';
 import { useComments } from '../../contexts/CommentsContext';
 import { useViews } from '../../contexts/ViewsContext';
-import { tags } from '../../data/tags';
+import { useTags } from '../../contexts/TagsContext';
+
+/** 计算本月 vs 上月的趋势百分比 */
+function computeTrend(items: { date: string }[]): { value: number; isPositive: boolean } {
+  const now = new Date();
+  const thisMonth = items.filter(item => {
+    const d = new Date(item.date);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }).length;
+  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonth = items.filter(item => {
+    const d = new Date(item.date);
+    return d.getFullYear() === lastMonthDate.getFullYear() && d.getMonth() === lastMonthDate.getMonth();
+  }).length;
+  if (lastMonth === 0) return { value: thisMonth > 0 ? 100 : 0, isPositive: true };
+  const pct = Math.round(((thisMonth - lastMonth) / lastMonth) * 100);
+  return { value: Math.abs(pct), isPositive: pct >= 0 };
+}
 
 export const Dashboard: React.FC = () => {
   const { isDark } = useDarkMode();
@@ -14,6 +31,7 @@ export const Dashboard: React.FC = () => {
   const { posts } = usePosts();
   const { comments, pendingCount } = useComments();
   const { getTotalViews } = useViews();
+  const { tags } = useTags();
 
   const totalViews = getTotalViews();
   const approvedComments = comments.filter(c => c.status === 'approved').length;
@@ -23,33 +41,35 @@ export const Dashboard: React.FC = () => {
     window.open(homeUrl, 'blog-home', 'width=1200,height=800,scrollbars=yes,resizable=yes');
   };
 
+  const postTrend = computeTrend(posts);
+
   const stats = [
     {
       title: '文章总数',
       value: posts.length,
       icon: <FileText className="w-6 h-6 text-lobster-500" />,
-      trend: { value: 20, isPositive: true },
+      trend: postTrend,
       color: 'red' as const
     },
     {
       title: '标签数量',
       value: tags.length,
       icon: <Tags className="w-6 h-6 text-blue-500" />,
-      trend: { value: 15, isPositive: true },
+      trend: computeTrend([]),
       color: 'blue' as const
     },
     {
       title: `评论 (${pendingCount > 0 ? `${pendingCount}待审` : '已全审'})`,
       value: approvedComments,
       icon: <MessageSquare className={`w-6 h-6 ${pendingCount > 0 ? 'text-yellow-500' : 'text-green-500'}`} />,
-      trend: { value: 100, isPositive: true },
+      trend: computeTrend(comments),
       color: 'green' as const
     },
     {
       title: '总阅读量',
       value: totalViews >= 1000 ? `${(totalViews / 1000).toFixed(1)}K` : totalViews,
       icon: <TrendingUp className="w-6 h-6 text-purple-500" />,
-      trend: { value: 30, isPositive: true },
+      trend: computeTrend([]),
       color: 'purple' as const
     }
   ];

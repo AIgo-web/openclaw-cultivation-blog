@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { tags, getTagColor } from '../data/tags';
-import { posts } from '../data/posts';
+import { useTags } from '../contexts/TagsContext';
+import { usePosts } from '../contexts/PostsContext';
+import { getTagColor } from '../data/tags';
 import PostCard from '../components/PostCard';
 
 export default function TagsPage() {
@@ -9,6 +10,8 @@ export default function TagsPage() {
   const [selectedTag, setSelectedTag] = useState<string | null>(
     searchParams.get('tag')
   );
+  const { tags } = useTags();
+  const { posts } = usePosts();
 
   useEffect(() => {
     const tag = searchParams.get('tag');
@@ -16,7 +19,7 @@ export default function TagsPage() {
   }, [searchParams]);
 
   const filteredPosts = selectedTag
-    ? posts.filter(p => p.tags.includes(selectedTag))
+    ? posts.filter(p => p.tags && Array.isArray(p.tags) && p.tags.includes(selectedTag))
     : [];
 
   const handleTagClick = (tagName: string) => {

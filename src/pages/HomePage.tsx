@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import PostCard from '../components/PostCard';
 import { usePosts } from '../contexts/PostsContext';
-import { tags, getTagColor } from '../data/tags';
+import { useTags } from '../contexts/TagsContext';
+import { getTagColor } from '../data/tags';
 import { categories } from '../data/categories';
 import { Link } from 'react-router-dom';
 import HotSeriesWidget from '../components/HotSeriesWidget';
 
-const BLOG_NAME = 'Clawcode龙虾养成计划';
-const BLOG_DESC = '记录 Clawcode AI Agent 的折腾历程、技巧心得与踩坑实录，涵盖 Skill 开发、QQ Bot 集成、Automation 自动化配置与工作记忆设计。';
+const BLOG_NAME = 'ClawCode 龙虾养成计划';
+const BLOG_DESC = '记录 ClawCode AI Agent 的折腾历程、技巧心得与踩坑实录，涵盖 Skill 开发、QQ Bot 集成、Automation 自动化配置与工作记忆设计。';
 const BLOG_URL = 'https://aievolution.site';
 
 const PAGE_SIZE = 6;
@@ -43,12 +44,13 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const { posts } = usePosts();
+  const { tags } = useTags();
 
   // SEO 元数据初始化
   useEffect(() => {
     document.title = `${BLOG_NAME} | AI Agent 折腾笔记与技能开发教程`;
     setMeta('description', BLOG_DESC);
-    setMeta('author', 'Clawcode 折腾人');
+    setMeta('author', 'ClawCode 折腾人');
     setMeta('og:title', `${BLOG_NAME} | AI Agent 折腾笔记与技能开发教程`, 'property');
     setMeta('og:description', BLOG_DESC, 'property');
     setMeta('og:url', BLOG_URL, 'property');
@@ -62,7 +64,7 @@ export default function HomePage() {
 
   const filteredPosts = posts.filter(p => {
     const isPublished = !p.status || p.status === 'published';
-    const matchTag = !selectedTag || p.tags.includes(selectedTag);
+    const matchTag = !selectedTag || (p.tags && Array.isArray(p.tags) && p.tags.includes(selectedTag));
     const matchCategory = !selectedCategory || p.category === selectedCategory;
     return isPublished && matchTag && matchCategory;
   });
@@ -88,10 +90,10 @@ export default function HomePage() {
           <span className="text-5xl sm:text-6xl lobster-swim inline-block">🦞</span>
         </div>
         <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-3">
-          OpenClaw<span className="text-lobster-500">龙虾养成计划</span>
+          ClawCode<span className="text-lobster-500">龙虾养成计划</span>
         </h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base max-w-xl mx-auto leading-relaxed px-2">
-          记录 Clawcode AI Agent 的折腾历程、技巧心得与踩坑实录。
+          记录 ClawCode AI Agent 的折腾历程、技巧心得与踩坑实录。
           从配置到开发，从 Skill 扩展到自动化工作流，一起把这只龙虾养大。
         </p>
 

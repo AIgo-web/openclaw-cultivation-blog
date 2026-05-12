@@ -20,10 +20,10 @@ export interface SEOMetadata {
 
 // 默认博客信息
 const BLOG_INFO = {
-  name: 'Clawcode龙虾养成计划',
-  description: '记录 Clawcode AI Agent 的折腾历程、技巧心得与踩坑实录。',
+  name: 'ClawCode 龙虾养成计划',
+  description: '记录 ClawCode AI Agent 的折腾历程、技巧心得与踩坑实录。',
   url: 'https://openclaw.ai',
-  author: 'Clawcode 折腾人',
+  author: 'ClawCode 折腾人',
 };
 
 /**
@@ -33,6 +33,7 @@ export function generateSEOMetadata(overrides: Partial<SEOMetadata> = {}): SEOMe
   return {
     ...BLOG_INFO,
     ...overrides,
+    title: overrides.title || BLOG_INFO.name || 'Lobster Blog',
   };
 }
 
@@ -268,14 +269,14 @@ export function generatePersonSchema(): string {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'Person',
-    name: 'Clawcode 折腾人',
+    name: 'ClawCode 折腾人',
     url: BLOG_URL,
-    description: 'AI Agent 爱好者，OpenClaw 深度用户，专注于 AI 自动化与工作流配置',
+    description: 'AI Agent 爱好者，ClawCode 深度用户，专注于 AI 自动化与工作流配置',
     sameAs: [
       'https://github.com/AIgo-web',
     ],
     knowsAbout: [
-      'Clawcode AI Agent',
+      'ClawCode AI Agent',
       'Skill 开发',
       'QQ Bot 集成',
       'Automation 自动化',

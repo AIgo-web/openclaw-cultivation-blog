@@ -22,6 +22,7 @@ import { PostsProvider } from './contexts/PostsContext';
 import { CommentsProvider } from './contexts/CommentsContext';
 import { ViewsProvider } from './contexts/ViewsContext';
 import { SeriesProvider } from './contexts/SeriesContext';
+import { TagsProvider } from './contexts/TagsContext';
 import { useSearchShortcut } from './hooks/useSearchShortcut';
 import { injectStructuredData, generateSiteNavigationSchema } from './services/seoService';
 import { Dashboard } from './admin/pages/Dashboard';
@@ -76,6 +77,7 @@ export default function App() {
           <CommentsProvider>
             <ViewsProvider>
               <SeriesProvider>
+              <TagsProvider>
               <ToastProvider>
                 <SearchProvider>
                   <SEOInitializer />
@@ -140,6 +142,7 @@ export default function App() {
                   </Routes>
                 </SearchProvider>
               </ToastProvider>
+              </TagsProvider>
               </SeriesProvider>
             </ViewsProvider>
           </CommentsProvider>

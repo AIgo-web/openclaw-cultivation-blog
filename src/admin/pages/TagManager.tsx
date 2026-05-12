@@ -1,17 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Home } from 'lucide-react';
 import { useDarkMode } from '../../hooks/useDarkMode';
-import { tags, addTag, deleteTag } from '../../data/tags';
+import { useTags } from '../../contexts/TagsContext';
 
 export const TagManager: React.FC = () => {
   const { isDark } = useDarkMode();
+  const { tags, addTag, deleteTag } = useTags();
   const [newTagName, setNewTagName] = useState('');
-  const [tagList, setTagList] = useState(tags);
-
-  // 当 tags 变化时（从 localStorage 重新加载），更新本地状态
-  useEffect(() => {
-    setTagList([...tags]);
-  }, []);
 
   const handleAddTag = () => {
     if (!newTagName.trim()) {
@@ -21,7 +16,6 @@ export const TagManager: React.FC = () => {
 
     const newTag = addTag(newTagName.trim());
     if (newTag) {
-      setTagList([...tags]);
       setNewTagName('');
       alert(`标签「${newTag.name}」添加成功`);
     } else {
@@ -31,8 +25,7 @@ export const TagManager: React.FC = () => {
 
   const handleDeleteTag = (id: string) => {
     if (confirm('确定要删除这个标签吗？')) {
-      deleteTag(id);
-      setTagList([...tags]);
+      deleteTag(tag.id);
       alert('标签删除成功');
     }
   };
@@ -137,7 +130,7 @@ export const TagManager: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {tagList.map((tag) => (
+            {tags.map((tag) => (
               <tr 
                 key={tag.id}
                 className={`border-t border-gray-200 dark:border-gray-800 hover:${
@@ -193,7 +186,7 @@ export const TagManager: React.FC = () => {
           <p className={`text-3xl font-bold ${
             isDark ? 'text-white' : 'text-gray-900'
           }`}>
-            {tagList.length}
+            {tags.length}
           </p>
         </div>
         <div className={`
@@ -209,7 +202,7 @@ export const TagManager: React.FC = () => {
           <p className={`text-3xl font-bold ${
             isDark ? 'text-white' : 'text-gray-900'
           }`}>
-            {tagList.filter(t => t.count > 0).length}
+            {tags.filter(t => t.count > 0).length}
           </p>
         </div>
         <div className={`
@@ -225,7 +218,7 @@ export const TagManager: React.FC = () => {
           <p className={`text-3xl font-bold ${
             isDark ? 'text-white' : 'text-gray-900'
           }`}>
-            {tagList.length > 0 ? Math.max(...tagList.map(t => t.count)) : 0}
+            {tags.length > 0 ? Math.max(...tags.map(t => t.count)) : 0}
           </p>
         </div>
       </div>

@@ -47,10 +47,10 @@ export const Settings: React.FC = () => {
   };
 
   const [settings, setSettings] = useState<BlogSettings>({
-    title: 'Clawcode龙虾养成计划',
-    subtitle: '记录 Clawcode AI Agent 的折腾历程',
-    author: 'Clawcode 折腾人',
-    description: '记录 Clawcode AI Agent 的折腾历程、技巧心得与踩坑实录。',
+    title: 'ClawCode 龙虾养成计划',
+    subtitle: '记录 ClawCode AI Agent 的折腾历程',
+    author: 'ClawCode 折腾人',
+    description: '记录 ClawCode AI Agent 的折腾历程、技巧心得与踩坑实录。',
   });
 
   // ── GitHub 发布配置 ──────────────────────────────────
@@ -271,7 +271,7 @@ export const Settings: React.FC = () => {
     setPwdLoading(true);
     await new Promise(resolve => setTimeout(resolve, 400));
 
-    const result = changePassword(currentPassword, newPassword);
+    const result = await changePassword(currentPassword, newPassword);
     setPwdResult(result);
     setPwdLoading(false);
 
