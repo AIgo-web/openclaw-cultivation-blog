@@ -73,6 +73,17 @@ jobs:
       - name: Build for Tencent Cloud
         run: npx vite build --mode tencent
 
+      - name: Reset ownership before deploy
+        # 上次部署 chown 成 www-data 后，ubuntu 无法覆盖文件；先还回部署用户
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.TENCENT_HOST }}
+          username: ${{ secrets.TENCENT_USER }}
+          key: ${{ secrets.TENCENT_SSH_KEY }}
+          port: 2222
+          script: |
+            sudo chown -R $USER:$USER /var/www/lobster-blog
+
       - name: Deploy to Tencent Cloud via SSH Key
         uses: appleboy/scp-action@v0.1.7
         with:
