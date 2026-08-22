@@ -6,7 +6,7 @@ import { setCanonicalUrl, BLOG_URL } from '../services/seoService';
 
 export default function ContactPage() {
   useEffect(() => {
-    document.title = '联系我 - Clawcode龙虾养成计划';
+    document.title = '联系我 - OpenClaw 龙虾养成计划';
     setCanonicalUrl(`${BLOG_URL}/contact`);
   }, []);
   return (
@@ -132,7 +132,7 @@ export default function ContactPage() {
         <div className="card p-6 bg-gradient-to-br from-lobster-50 to-orange-50 dark:from-lobster-900/20 dark:to-orange-900/20 text-center">
           <span className="text-4xl mb-3 inline-block">🦞</span>
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-            欢迎一起折腾 Clawcode
+            欢迎一起折腾 OpenClaw
           </h2>
           <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
             有什么想聊的，随时来找我！

@@ -57,8 +57,8 @@ export function searchPosts(query: string, posts: Post[]) {
     .map(post => {
       let score = 0;
       const titleLower = post.title.toLowerCase();
-      const excerptLower = (post.excerpt || '').toLowerCase();
-      const tagsLower = post.tags.map(t => t.toLowerCase());
+      const summaryLower = (post.summary || '').toLowerCase();
+      const tagsLower = (post.tags && Array.isArray(post.tags)) ? post.tags.map(t => t.toLowerCase()) : [];
 
       searchTerms.forEach(term => {
         // 标题匹配权重最高
@@ -67,7 +67,7 @@ export function searchPosts(query: string, posts: Post[]) {
           if (titleLower.startsWith(term)) score += 5;
         }
         // 摘要匹配
-        if (excerptLower.includes(term)) {
+        if (summaryLower.includes(term)) {
           score += 5;
         }
         // 标签匹配

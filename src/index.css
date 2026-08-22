@@ -221,37 +221,11 @@
   animation: swim 1.5s ease-in-out infinite;
 }
 
-/* Dark mode highlight.js - Catppuccin Mocha 风格 */
+/* Dark mode highlight.js override */
 .dark .hljs {
   background: #1e2030;
   color: #cdd6f4;
 }
-.dark .hljs-keyword,
-.dark .hljs-selector-tag,
-.dark .hljs-type { color: #cba6f7; }
-.dark .hljs-string,
-.dark .hljs-attr,
-.dark .hljs-template-tag,
-.dark .hljs-template-variable { color: #a6e3a1; }
-.dark .hljs-number,
-.dark .hljs-literal,
-.dark .hljs-variable,
-.dark .hljs-built_in { color: #fab387; }
-.dark .hljs-comment,
-.dark .hljs-doctag { color: #6c7086; font-style: italic; }
-.dark .hljs-function .hljs-title { color: #89b4fa; }
-.dark .hljs-title.class_ { color: #f9e2af; }
-.dark .hljs-meta { color: #f5c2e7; }
-.dark .hljs-regexp { color: #f38ba8; }
-.dark .hljs-symbol { color: #94e2d5; }
-.dark .hljs-name { color: #89dceb; }
-.dark .hljs-attr { color: #89dceb; }
-.dark .hljs-attribute { color: #a6e3a1; }
-.dark .hljs-selector-class { color: #f9e2af; }
-.dark .hljs-selector-id { color: #fab387; }
-.dark .hljs-addition { color: #a6e3a1; background-color: rgba(166, 227, 161, 0.1); }
-.dark .hljs-deletion { color: #f38ba8; background-color: rgba(243, 139, 168, 0.1); }
-.dark .hljs-link { color: #89b4fa; text-decoration: underline; }
 
 /* ============= 移动端优化 ============= */
 

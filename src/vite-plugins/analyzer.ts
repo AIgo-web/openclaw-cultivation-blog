@@ -8,14 +8,12 @@
  * 会生成一个 .、本dist/stats.html 文件，用于可视化分析 Bundle 组成
  */
 
-import { visualizer } from 'rollup-plugin-visualizer';
+// // import { visualizer } from 'rollup-plugin-visualizer'; // disabled // disabled
 import type { Plugin } from 'vite';
 
 export function createAnalyzerPlugin(): Plugin {
-  return visualizer({
-    filename: 'stats.html',
-    open: true,
-    gzipSize: true,
-    brotliSize: true,
-  }) as unknown as Plugin;
+  // 插件已禁用，返回空插件
+  return {
+    name: 'analyzer-plugin-disabled'
+  } as unknown as Plugin;
 }

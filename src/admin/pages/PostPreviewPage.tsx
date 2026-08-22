@@ -226,7 +226,7 @@ export default function PostPreviewPage() {
 
         {/* 打赏 */}
         <div className="flex flex-wrap items-center justify-center py-4 mb-8">
-          <Donation author="Clawcode" />
+          <Donation author="OpenClaw" />
         </div>
       </main>
 

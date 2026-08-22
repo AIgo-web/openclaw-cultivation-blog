@@ -119,18 +119,18 @@ export const SearchBar: React.FC = () => {
                       )}
                     </h4>
                     <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-                      {post.excerpt
-                        ? generateSearchPreview(post.excerpt, query, 80)
+                      {post.summary
+                        ? generateSearchPreview(post.summary, query, 80)
                         : generateSearchPreview(post.content.replace(/#\s/g, ''), query, 80)}
                     </p>
-                    {post.tags.length > 0 && (
+                    {(post.tags && Array.isArray(post.tags) && post.tags.length > 0) && (
                       <div className="mt-1 flex flex-wrap gap-1">
                         {post.tags.slice(0, 2).map(tag => (
                           <span key={tag} className="inline-block px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded">
                             {tag}
                           </span>
                         ))}
-                        {post.tags.length > 2 && (
+                        {(post.tags && Array.isArray(post.tags) && post.tags.length > 2) && (
                           <span className="text-xs text-gray-500 dark:text-gray-400">+{post.tags.length - 2}</span>
                         )}
                       </div>

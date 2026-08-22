@@ -240,7 +240,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                 <h4 className="font-bold text-lg mb-2 line-clamp-2">{post.title}</h4>
                 <p className="text-sm opacity-90 line-clamp-3">{post.summary}</p>
                 <div className="mt-4 flex items-center justify-between">
-                  <span className="text-xs opacity-75">Clawcode龙虾养成计划</span>
+                  <span className="text-xs opacity-75">OpenClaw 龙虾养成计划</span>
                   <span className="text-xs opacity-75">🦞</span>
                 </div>
               </div>

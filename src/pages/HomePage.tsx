@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import PostCard from '../components/PostCard';
 import { usePosts } from '../contexts/PostsContext';
-import { useTags } from '../contexts/TagsContext';
-import { getTagColor } from '../data/tags';
+import { tags, getTagColor } from '../data/tags';
 import { categories } from '../data/categories';
 import { Link } from 'react-router-dom';
 import HotSeriesWidget from '../components/HotSeriesWidget';
 
-const BLOG_NAME = 'ClawCode 龙虾养成计划';
-const BLOG_DESC = '记录 ClawCode AI Agent 的折腾历程、技巧心得与踩坑实录，涵盖 Skill 开发、QQ Bot 集成、Automation 自动化配置与工作记忆设计。';
+const BLOG_NAME = 'OpenClaw 龙虾养成计划';
+const BLOG_DESC = '记录 OpenClaw AI Agent 的折腾历程、技巧心得与踩坑实录，涵盖 Skill 开发、QQ Bot 集成、Automation 自动化配置与工作记忆设计。';
 const BLOG_URL = 'https://aievolution.site';
 
 const PAGE_SIZE = 6;
@@ -44,13 +43,12 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const { posts } = usePosts();
-  const { tags } = useTags();
 
   // SEO 元数据初始化
   useEffect(() => {
     document.title = `${BLOG_NAME} | AI Agent 折腾笔记与技能开发教程`;
     setMeta('description', BLOG_DESC);
-    setMeta('author', 'ClawCode 折腾人');
+    setMeta('author', 'OpenClaw 折腾人');
     setMeta('og:title', `${BLOG_NAME} | AI Agent 折腾笔记与技能开发教程`, 'property');
     setMeta('og:description', BLOG_DESC, 'property');
     setMeta('og:url', BLOG_URL, 'property');
@@ -90,10 +88,10 @@ export default function HomePage() {
           <span className="text-5xl sm:text-6xl lobster-swim inline-block">🦞</span>
         </div>
         <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-3">
-          ClawCode<span className="text-lobster-500">龙虾养成计划</span>
+          OpenClaw<span className="text-lobster-500">龙虾养成计划</span>
         </h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base max-w-xl mx-auto leading-relaxed px-2">
-          记录 ClawCode AI Agent 的折腾历程、技巧心得与踩坑实录。
+          记录 OpenClaw AI Agent 的折腾历程、技巧心得与踩坑实录。
           从配置到开发，从 Skill 扩展到自动化工作流，一起把这只龙虾养大。
         </p>
 
@@ -109,6 +107,33 @@ export default function HomePage() {
               <div className="text-xs text-gray-400 dark:text-gray-500">{stat.label}</div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* 专题子站 */}
+      <section className="mb-8 sm:mb-12">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <span className="w-1 h-4 bg-amber-500 rounded-full inline-block" />
+            专题子站
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <a href="/deeplearning/" className="group block rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-lobster-400 hover:shadow-md transition-all p-5">
+            <div className="text-3xl mb-2">🧠</div>
+            <div className="text-sm font-semibold text-gray-800 dark:text-gray-100 group-hover:text-lobster-500 transition-colors mb-1">深度学习入门</div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">从零开始学习深度学习基础知识与实战</p>
+          </a>
+          <a href="/google-ai-cert/" className="group block rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-lobster-400 hover:shadow-md transition-all p-5">
+            <div className="text-3xl mb-2">📜</div>
+            <div className="text-sm font-semibold text-gray-800 dark:text-gray-100 group-hover:text-lobster-500 transition-colors mb-1">Google AI 证书</div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Google AI 认证课程学习笔记与资料</p>
+          </a>
+          <a href="/agentic-design-patterns/" className="group block rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 hover:shadow-md transition-all p-5">
+            <div className="text-3xl mb-2">🧩</div>
+            <div className="text-sm font-semibold text-gray-800 dark:text-gray-100 group-hover:text-lobster-500 transition-colors mb-1">智能体设计模式</div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">《Agentic Design Patterns》中英对照教程：21 种设计模式 · 图文视频</p>
+          </a>
         </div>
       </section>
 

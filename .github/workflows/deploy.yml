@@ -79,7 +79,7 @@ jobs:
           host: ${{ secrets.TENCENT_HOST }}
           username: ${{ secrets.TENCENT_USER }}
           key: ${{ secrets.TENCENT_SSH_KEY }}
-          port: 22
+          port: 2222
           source: "dist/*"
           target: "/var/www/lobster-blog"
           strip_components: 1
@@ -91,7 +91,7 @@ jobs:
           host: ${{ secrets.TENCENT_HOST }}
           username: ${{ secrets.TENCENT_USER }}
           key: ${{ secrets.TENCENT_SSH_KEY }}
-          port: 22
+          port: 2222
           script: |
             sudo chown -R www-data:www-data /var/www/lobster-blog
             sudo chmod -R 755 /var/www/lobster-blog

@@ -32,7 +32,7 @@ export default function Navbar() {
           <Link to="/" className="flex items-center gap-2 group shrink-0">
             <span className="text-2xl group-hover:scale-110 transition-transform duration-300 inline-block lobster-swim">🦞</span>
             <span className="font-bold text-base sm:text-lg text-gray-900 dark:text-white">
-              <span className="hidden xs:inline">Clawcode</span>
+              <span className="hidden xs:inline">OpenClaw</span>
               <span className="text-lobster-500">龙虾</span>
               <span className="hidden sm:inline">养成计划</span>
             </span>

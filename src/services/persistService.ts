@@ -1,48 +1,32 @@
 /**
- * 博客数据持久化服务
- * 将 localStorage 数据同步到 Python 后端，实现跨设备数据持久化
+ * 博客数据持久化服务 — SECURED version
+ * FIX (VULN-0001): 写入操作附带管理员会话 token（由 /api/admin/login 签发）。
+ * 读取保持公开（博客前台需要）；写入无 token 时后端返回 401，前端静默降级到 localStorage。
  */
 
-const API_BASE = 'http://localhost:5001';
+const API_BASE = '';
 
 type DataKey = 'posts-data' | 'series-data';
 
-/**
- * 通用 fetch 重试工具
- * @param url 请求地址
- * @param options fetch 选项
- * @param retries 重试次数（默认 1 次）
- * @param retryDelay 重试延迟（毫秒，默认 500ms）
- */
-async function retryFetch(
-  url: string,
-  options: RequestInit,
-  retries = 1,
-  retryDelay = 500
-): Promise<Response> {
+async function getAuthHeader(): Promise<Record<string, string>> {
   try {
-    const res = await fetch(url, options);
-    return res;
-  } catch (err) {
-    if (retries <= 0) throw err;
-    console.debug(`[persistService] Request failed, retrying in ${retryDelay}ms...`, err);
-    await new Promise(r => setTimeout(r, retryDelay));
-    return retryFetch(url, options, retries - 1, retryDelay);
+    const { getAuthToken } = await import('./authToken');
+    const token = getAuthToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
   }
 }
 
 /**
- * 从后端读取数据
+ * 从后端读取数据（公开）
  * 失败时静默返回 null（降级到 localStorage）
  */
 export async function fetchRemoteData<T>(key: DataKey): Promise<T | null> {
   try {
-    const res = await retryFetch(
-      `${API_BASE}/api/blog/data/${key}`,
-      { signal: AbortSignal.timeout(8000) },
-      1,
-      500
-    );
+    const res = await fetch(`${API_BASE}/api/blog/data/${key}`, {
+      signal: AbortSignal.timeout(3000),
+    });
     if (!res.ok) return null;
     const json = await res.json();
     return json.success ? (json.data as T) : null;
@@ -52,24 +36,20 @@ export async function fetchRemoteData<T>(key: DataKey): Promise<T | null> {
 }
 
 /**
- * 向后端写入数据
+ * 向后端写入数据（需管理员会话）
  * 失败时静默忽略（不影响本地使用）
  */
 export async function pushRemoteData<T>(key: DataKey, data: T): Promise<void> {
   try {
-    await retryFetch(
-      `${API_BASE}/api/blog/data/${key}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data }),
-        signal: AbortSignal.timeout(10000),
-      },
-      1,
-      500
-    );
+    const headers = await getAuthHeader();
+    await fetch(`${API_BASE}/api/blog/data/${key}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: JSON.stringify({ data }),
+      signal: AbortSignal.timeout(5000),
+    });
   } catch {
-    // 后端不可用时不报错，数据已在 localStorage 中
+    // 后端不可用/未登录时不报错，数据已在 localStorage 中
   }
 }
 
@@ -78,12 +58,9 @@ export async function pushRemoteData<T>(key: DataKey, data: T): Promise<void> {
  */
 export async function isBackendAvailable(): Promise<boolean> {
   try {
-    const res = await retryFetch(
-      `${API_BASE}/api/wechat/health`,
-      { signal: AbortSignal.timeout(5000) },
-      1,
-      500
-    );
+    const res = await fetch(`${API_BASE}/api/wechat/health`, {
+      signal: AbortSignal.timeout(2000),
+    });
     return res.ok;
   } catch {
     return false;

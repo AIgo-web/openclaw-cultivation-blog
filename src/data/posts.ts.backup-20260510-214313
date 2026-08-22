@@ -1,0 +1,1114 @@
+import type { Post } from '../types';
+
+export const posts: Post[] = [
+  {
+    "id": "1",
+    "title": "OpenClaw 初体验：从安装到第一个 Agent 对话",
+    "summary": "第一次接触 OpenClaw，从下载安装到跑通第一次 AI 对话，踩了不少坑。这篇文章记录完整的入门流程，帮你少走弯路，快速把这只龙虾养活。",
+    "tags": [
+      "新手入门",
+      "OpenClaw",
+      "环境配置"
+    ],
+    "date": "2026-03-20",
+    "readTime": 8,
+    "category": "tech",
+    "coverColor": "from-lobster-400 to-orange-400",
+    "status": "published" as const,
+    "content": "# OpenClaw 初体验：从安装到第一个 Agent 对话\n\n> 万事开头难，但 OpenClaw 的第一步其实挺顺的——只要你知道坑在哪。\n\n## OpenClaw 是什么？\n\nOpenClaw 是一个本地运行的 **AI Agent 框架**，核心特点是：\n\n- 🦞 运行在你自己的机器上，数据不出门\n- 🔌 支持接入多种大模型（通过 models.json 配置）\n- 🛠️ 可安装各种 Skill 扩展能力\n- 📁 直接操作本地文件系统、执行命令\n\n## 安装流程\n\n### 1. 下载客户端\n\n访问官方渠道下载对应平台的安装包（Windows / macOS / Linux 均支持）。\n\n### 2. 配置模型\n\n安装完成后，第一件事是配置你的 AI 模型。编辑 `~/.openclaw/agents/main/agent/models.json`：\n\n```json\n{\n  \"models\": [\n    {\n      \"id\": \"your-model-id\",\n      \"provider\": \"openai\",\n      \"apiKey\": \"sk-xxx\",\n      \"baseURL\": \"https://api.openai.com/v1\"\n    }\n  ],\n  \"default\": \"your-model-id\"\n}\n```\n\n### 3. 首次对话\n\n配置完毕后，在输入框里说一句话，看看 Agent 怎么回应。如果能正常响应，恭喜你——龙虾养活了 🦞\n\n## 常见坑\n\n| 问题 | 原因 | 解决方案 |\n|------|------|----------|\n| 模型无响应 | API Key 配置错误 | 检查 models.json 格式 |\n| 命令执行失败 | 路径权限问题 | 以管理员身份运行 |\n| 中文乱码 | Windows 编码问题 | PowerShell 设置 UTF-8 |\n\n## 小结\n\nOpenClaw 的上手门槛不高，核心是把模型配好。接下来可以开始探索 Skill 系统，让你的 Agent 能做更多事。\n\n---\n\n*下一篇：Skill 系统详解 →*\n"
+  },
+  {
+    "id": "2",
+    "title": "OpenClaw Skill 系统详解：安装、使用与自定义",
+    "summary": "Skill 是 OpenClaw 的超能力扩展包，安装一个 Skill 就能让 Agent 掌握一项新技能。本文详解 Skill 的工作原理、安装方式，以及如何自己写一个 Skill。",
+    "tags": [
+      "Skill开发",
+      "OpenClaw",
+      "进阶技巧"
+    ],
+    "date": "2026-03-18",
+    "readTime": 10,
+    "category": "tech",
+    "coverColor": "from-ocean-400 to-blue-400",
+    "status": "published" as const,
+    "content": "# OpenClaw Skill 系统详解\n\n## Skill 是什么？\n\nSkill 是 OpenClaw 的**领域专家扩展包**，本质是一个包含以下内容的目录：\n\n```\nmy-skill/\n├── SKILL.md        # Skill 的核心指令（Agent 会读取）\n├── scripts/        # 可执行脚本\n│   └── main.py\n└── assets/         # 静态资源\n```\n\n当 Agent 加载一个 Skill，它会读取 SKILL.md 中的指令，获得该领域的专业知识和操作能力。\n\n## Skill 存储位置\n\nOpenClaw 有两级 Skill 管理：\n\n| 级别 | 路径 | 作用域 |\n|------|------|--------|\n| 用户级 | `~/.workbuddy/skills/` | 所有项目可用 |\n| 项目级 | `{项目}/.workbuddy/skills/` | 仅当前项目可用 |\n\n**推荐**：常用 Skill 装到用户级，项目专属的装到项目级。\n\n## 安装 Skill\n\n### 从市场安装\n\n在 OpenClaw 界面的 Skill 市场中搜索并一键安装。\n\n### 手动安装\n\n```bash\n# 复制 Skill 目录到用户级\ncp -r my-skill ~/.workbuddy/skills/\n\n# 验证安装\nls ~/.workbuddy/skills/\n```\n\n## 写一个最简单的 Skill\n\n### SKILL.md\n\n```markdown\n# my-greeter\n\n当用户问候时，用这个 Skill 回应。\n\n## 使用方式\n\n执行以下脚本获取当前时间：\n\n```bash\npython scripts/get_time.py\n```\n\n根据时间段给出对应的问候语。\n```\n\n### scripts/get_time.py\n\n```python\nfrom datetime import datetime\n\nnow = datetime.now()\nhour = now.hour\n\nif 6 <= hour < 12:\n    print(\"早上好！\")\nelif 12 <= hour < 18:\n    print(\"下午好！\")\nelse:\n    print(\"晚上好！\")\n```\n\n## 安全提示\n\n> ⚠️ 安装第三方 Skill 前，务必检查 SKILL.md 和 scripts/ 目录中的内容，防范潜在的安全风险（命令注入、数据外发等）。\n\nOpenClaw 内置了 skill-scanner 可以帮助审计 Skill 安全性。\n\n---\n\n*下一篇：QQ Bot 集成实战 →*\n"
+  },
+  {
+    "id": "3",
+    "title": "把 OpenClaw Agent 接入 QQ Bot：完整实战",
+    "summary": "通过 OpenClaw 的 QQ Bot 渠道，让 AI Agent 直接在 QQ 中响应消息。本文记录从申请 AppID 到消息收发全流程，包含 known-users.json 的 openid 配置技巧。",
+    "tags": [
+      "QQ Bot",
+      "OpenClaw",
+      "渠道集成"
+    ],
+    "date": "2026-03-15",
+    "readTime": 12,
+    "category": "tech",
+    "coverColor": "from-blue-400 to-indigo-500",
+    "status": "published" as const,
+    "content": "# 把 OpenClaw Agent 接入 QQ Bot\n\n## 整体架构\n\n```\nQQ 用户发消息\n    ↓\nQQ Bot 平台（腾讯开放平台）\n    ↓\nOpenClaw QQ Bot 渠道\n    ↓\nOpenClaw Agent 处理\n    ↓\n回复消息\n```\n\n## 前置准备\n\n### 1. 申请 QQ Bot AppID\n\n前往 [QQ 开放平台](https://q.qq.com) 创建应用，获取：\n- `AppID`\n- `AppSecret` / `Token`\n\n### 2. 配置 OpenClaw\n\n编辑 `~/.openclaw/openclaw.json`，添加 QQ Bot 渠道配置：\n\n```json\n{\n  \"channels\": {\n    \"qqbot\": {\n      \"enabled\": true,\n      \"appId\": \"你的AppID\",\n      \"appSecret\": \"你的AppSecret\"\n    }\n  }\n}\n```\n\n## 用户 OpenID 管理\n\nQQ Bot 使用 openid 而非 QQ 号来标识用户。第一次收到某用户消息后，OpenClaw 会自动将其 openid 记录到：\n\n```\n~/.openclaw/qqbot/data/known-users.json\n```\n\n文件格式：\n\n```json\n{\n  \"users\": [\n    {\n      \"openid\": \"B7F7B394E13E2DAA60EC841AA38491D4\",\n      \"nickname\": \"尧哥\",\n      \"firstSeen\": \"2026-03-10T08:00:00\"\n    }\n  ]\n}\n```\n\n## 主动推送消息\n\n已知 openid 后，可以通过脚本主动向用户推送消息：\n\n```python\n# qq_push.py\nimport requests\nimport json\n\nOPENID = \"B7F7B394E13E2DAA60EC841AA38491D4\"\nAPP_ID = \"1903506261\"\n\ndef push_message(content: str):\n    # 调用 OpenClaw 内置推送接口\n    url = \"http://localhost:PORT/api/push\"\n    payload = {\n        \"channel\": \"qqbot\",\n        \"openid\": OPENID,\n        \"content\": content\n    }\n    resp = requests.post(url, json=payload)\n    return resp.json()\n\npush_message(\"🦞 Agent 定时任务执行完成！\")\n```\n\n## 实际效果\n\n接入成功后，在 QQ 中 @ Bot 或私聊，Agent 会直接响应，支持：\n- 自然语言对话\n- 执行 Skill 任务\n- 返回文件、图片等富媒体\n\n---\n"
+  },
+  {
+    "id": "4",
+    "title": "OpenClaw 自动化任务：定时 Automation 配置指南",
+    "summary": "OpenClaw 支持定时自动化任务（Automation），让 Agent 在无人值守时按计划执行工作。本文详解 RRULE 规则写法、任务配置格式以及常见场景实例。",
+    "tags": [
+      "Automation",
+      "OpenClaw",
+      "自动化"
+    ],
+    "date": "2026-03-10",
+    "readTime": 9,
+    "category": "tech",
+    "coverColor": "from-green-400 to-teal-400",
+    "status": "published" as const,
+    "content": "# OpenClaw 自动化任务配置指南\n\n## Automation 是什么？\n\nAutomation 让 Agent 按照预设的时间计划自动执行任务，无需人工触发。典型场景：\n\n- 每天早上汇总昨日新闻\n- 每周一生成工作计划\n- 每小时检查服务器状态\n- 定时向 QQ 推送提醒\n\n## 配置文件结构\n\n每个 Automation 存储在独立目录：\n\n```\n~/.workbuddy/automations/\n└── {automation-id}/\n    └── automation.toml\n```\n\n### automation.toml 格式\n\n```toml\nname = \"每日早报\"\nprompt = \"搜索今天的科技新闻，整理成简报推送到 QQ\"\nstatus = \"ACTIVE\"\ncwds = [\"/Users/slowdone/WorkBuddy/project\"]\n\n[schedule]\nrrule = \"FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=8;BYMINUTE=0\"\n```\n\n## RRULE 速查表\n\nRRULE 是 iCalendar 标准的重复规则格式：\n\n| 场景 | RRULE |\n|------|-------|\n| 每小时执行 | `FREQ=HOURLY;INTERVAL=1` |\n| 每两小时 | `FREQ=HOURLY;INTERVAL=2` |\n| 每天早上 9 点 | `FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA,SU;BYHOUR=9;BYMINUTE=0` |\n| 每周一早上 9 点 | `FREQ=WEEKLY;BYDAY=MO;BYHOUR=9;BYMINUTE=0` |\n| 工作日每天 | `FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=0` |\n\n> ⚠️ OpenClaw 目前只支持 **HOURLY** 和 **WEEKLY** 两种频率，不支持 DAILY / MONTHLY。\n\n## 实战例子\n\n### 例 1：每天早报推送\n\n```toml\nname = \"科技早报\"\nprompt = \"搜索今日科技新闻头条，整理 5 条摘要，通过 QQ 推送给用户\"\nstatus = \"ACTIVE\"\ncwds = [\"/Users/slowdone\"]\n\n[schedule]\nrrule = \"FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=8;BYMINUTE=0\"\n```\n\n### 例 2：每两小时健康检查\n\n```toml\nname = \"服务健康检查\"\nprompt = \"检查本地服务运行状态，如有异常立即通知\"\nstatus = \"ACTIVE\"\ncwds = [\"/Users/slowdone/services\"]\n\n[schedule]\nrrule = \"FREQ=HOURLY;INTERVAL=2\"\n```\n\n## 管理 Automation\n\n在 OpenClaw 对话中，直接用自然语言操作：\n\n```\n\"帮我创建一个每天早上8点的科技早报任务\"\n\"暂停科技早报任务\"\n\"查看所有自动化任务\"\n```\n\nAgent 会自动读写 automation.toml 配置文件。\n\n---\n"
+  },
+  {
+    "id": "5",
+    "title": "OpenClaw 工作记忆系统：让 Agent 跨会话记住你",
+    "summary": "默认情况下 Agent 每次对话都是从零开始的。通过 OpenClaw 的工作记忆系统，你可以让 Agent 记住你的偏好、项目上下文和重要决策，打造真正有\"记忆\"的 AI 助手。",
+    "tags": [
+      "工作记忆",
+      "OpenClaw",
+      "进阶技巧"
+    ],
+    "date": "2026-03-05",
+    "readTime": 7,
+    "category": "tech",
+    "coverColor": "from-purple-400 to-pink-400",
+    "status": "published" as const,
+    "content": "# OpenClaw 工作记忆系统\n\n## 为什么需要记忆？\n\n没有记忆的 Agent 就像每天早上起床都忘了自己是谁——每次都要重新自我介绍，效率极低。\n\nOpenClaw 的工作记忆系统通过 Markdown 文件实现跨会话的上下文持久化。\n\n## 记忆文件结构\n\n```\n{项目}/.workbuddy/memory/\n├── MEMORY.md          # 长期记忆（精炼的核心信息）\n├── 2026-03-23.md      # 今日工作日志（按日期）\n├── 2026-03-22.md\n└── ...\n```\n\n## MEMORY.md：长期记忆\n\n存放跨越多天都有价值的信息：\n\n```markdown\n# 项目偏好\n\n## 技术栈偏好\n- 前端：React + TypeScript + Tailwind CSS\n- 后端：Python FastAPI\n- 数据库：PostgreSQL\n\n## 重要约定\n- 代码注释使用中文\n- Git commit 信息格式：type(scope): description\n\n## 已知配置\n- OpenClaw AppID: 1903506261\n- QQ 推送目标: openid B7F7B394...\n```\n\n## 日志文件：短期记忆\n\n每天的工作记录，追加写入：\n\n```markdown\n# 2026-03-23\n\n## 14:30 完成博客网站开发\n- 项目路径：~/WorkBuddy/lobster-blog\n- 技术栈：React + Vite + Tailwind\n- 已启动 dev server: http://localhost:5173\n\n## 15:00 修复主题描述\n- 将博客主题从\"水产养殖\"改为\"OpenClaw 技术博客\"\n```\n\n## Agent 读写记忆的时机\n\n**读取时机**：\n- 会话开始时，任务涉及历史上下文\n- 回答\"上次做了什么\"类问题前\n\n**写入时机**：\n- 完成一项实质性工作后\n- 用户告知重要偏好或约定\n- 做出重要技术决策后\n\n## 实用技巧\n\n告诉 Agent 记住某件事：\n\n```\n\"记住：我的数据库密码存在 ~/.env 文件里，不要直接写在代码中\"\n\"记住：这个项目用 pnpm 而不是 npm\"\n```\n\nAgent 会将其写入 MEMORY.md，下次自动读取。\n\n---\n\n*记忆系统是让 OpenClaw Agent 越用越顺手的关键。好好利用它！*\n"
+  },
+  {
+    "id": "post-1774322390982",
+    "title": "OpenClaw  AI Agent 赚钱思路与案例",
+    "summary": "OpenClaw 是一个开源的 AI 代理平台，允许用户：\n- 部署自己的 AI 助手（基于 Claude、GPT 等）\n- 连接多种通讯渠道（微信、QQ、Telegram、Discord、飞书等）\n- 自动化处理日常任务\n- 构建可扩展的 AI 服务",
+    "content": "# OpenClaw / AI Agent 赚钱思路与案例\n\n**日期**: 2026-03-24 \n**主题**: 使用 OpenClaw 及 AI 代理技术赚钱的 20 种方式\n\n---\n\n## 🚀 OpenClaw 简介\n\nOpenClaw 是一个开源的 AI 代理平台，允许用户：\n- 部署自己的 AI 助手（基于 Claude、GPT 等）\n- 连接多种通讯渠道（QQ、Telegram、Discord、飞书等）\n- 自动化处理日常任务\n- 构建可扩展的 AI 服务\n\n---\n\n## 💰 20 条 OpenClaw / AI Agent 赚钱思路\n\n### 一、内容创作与营销（1-5）\n\n1. **AI 自媒体运营**\n   - 使用 OpenClaw 管理多个社交平台账号\n   - 自动生成每日热点内容、图文、短视频脚本\n   - 变现：平台流量分成、广告收入\n\n2. **SEO 内容工厂**\n   - 批量生成 SEO 优化文章\n   - 自动发布到 WordPress/微信公众号\n   - 变现：联盟营销、广告点击\n\n3. **AI 新闻简报服务**\n   - 每日自动收集特定领域新闻\n   - 生成摘要并推送给付费订阅用户\n   - 变现：订阅费（$5-50/月）\n\n4. **自动化的社媒营销**\n   - 管理客户的小红书/抖音/微博账号\n   - 自动回复评论、私信、发布内容\n   - 变现：月度代运营费（¥3000-20000/月）\n\n5. **AI 文案代写服务**\n   - 接单后使用 AI 快速生成文案\n   - 涵盖：广告语、产品描述、邮件营销\n   - 变现：按件计费（¥50-500/篇）\n\n### 二、客服与咨询（6-10）\n\n6. **智能客服外包**\n   - 为中小电商搭建 AI 客服系统\n   - 7×24 小时自动回复客户咨询\n   - 变现：系统搭建费 + 月度维护费\n\n7. **AI 法律咨询助手**\n   - 基于法律知识库回答常见问题\n   - 辅助律师处理简单案件\n   - 变现：按咨询次数或包月收费\n\n8. **医疗健康咨询**\n   - 提供基础健康知识问答\n   - 提醒用药、预约、健康监测\n   - 变现：会员制（需注意合规）\n\n9. **教育辅导助手**\n   - 解答学生作业问题\n   - 提供个性化学习计划\n   - 变现：课程订阅、一对一辅导\n\n10. **心理咨询陪伴**\n    - 提供情感支持、倾听服务\n    - 辅助心理健康管理\n    - 变现：按时长计费\n\n### 三、技术开发（11-15）\n\n11. **AI 自动化工作流开发**\n    - 为企业定制自动化流程\n    - 整合多个 SaaS 工具（Notion、飞书、钉钉）\n    - 变现：项目开发费（¥5000-50000）\n\n12. **定制化 OpenClaw 技能开发**\n    - 开发特定领域的 Skill（技能包）\n    - 如：财务分析、代码审查、设计辅助\n    - 变现：技能包销售（$10-100/个）\n\n13. **AI 编程助手服务**\n    - 协助开发者写代码、Debug\n    - 代码审查、重构建议\n    - 变现：按小时计费（$50-200/小时）\n\n14. **自动化数据分析**\n    - 自动收集、清洗、分析数据\n    - 生成可视化报表\n    - 变现：报表定制服务\n\n15. **网站/App 自动化测试**\n    - 使用 AI 进行 UI 测试\n    - 自动生成测试报告\n    - 变现：测试服务外包\n\n### 四、电商与交易（16-20）\n\n16. **AI 选品与定价**\n    - 自动分析市场趋势\n    - 推荐热门商品、优化定价\n    - 变现：咨询服务费\n\n17. **跨境电商自动化**\n    - 自动翻译商品描述\n    - 处理多语言客服\n    - 变现：店铺运营分成\n\n18. **加密货币交易助手**\n    - 分析市场数据、新闻情绪\n    - 提供交易建议（需声明非投资建议）\n    - 变现：订阅费、交易分成\n\n19. **股票财经资讯服务**\n    - 每日盘前盘后分析\n    - 自动监控持仓股票\n    - 变现：VIP 群组订阅\n\n20. **AI 简历优化服务**\n    - 自动分析职位 JD\n    - 针对性优化简历\n    - 变现：按份收费（¥100-500/份）\n\n---\n\n## 📊 变现模式总结\n\n| 模式 | 难度 | 收入潜力 | 推荐度 |\n|------|------|----------|--------|\n| 内容创作 | ⭐⭐ | 💰💰 | ⭐⭐⭐⭐ |\n| 客服外包 | ⭐⭐⭐ | 💰💰💰 | ⭐⭐⭐⭐ |\n| 技能开发 | ⭐⭐⭐⭐ | 💰💰💰💰 | ⭐⭐⭐ |\n| 自动化工作流 | ⭐⭐⭐ | 💰💰💰💰 | ⭐⭐⭐⭐⭐ |\n| 咨询服务 | ⭐⭐ | 💰💰💰 | ⭐⭐⭐⭐ |\n\n---\n\n## 🛠️ OpenClaw 相关技能推荐\n\n1. **content-recycler** - 内容跨平台转换\n2. **wechat-article-writer** - 公众号文章自动写作\n3. **automation-workflows** - 自动化工作流设计\n4. **market-research** - 市场调研分析\n5. **copywriting** - 文案撰写\n\n---\n\n## ⚠️ 注意事项\n\n1. **合规性**：部分领域（医疗、法律、金融）需要相关资质\n2. **AI 局限性**：需要人工审核和兜底\n3. **隐私保护**：处理用户数据需遵守相关法规\n4. **服务质量**：初期可低价获客，逐步提升价格\n\n---\n\n## 🔗 相关资源\n\n- **OpenClaw GitHub**: https://github.com/openclaw/openclaw\n- **OpenClaw 文档**: https://docs.openclaw.ai\n- **技能市场**: https://clawhub.com\n\n---\n\n*整理日期: 2026-03-24*  \n*标签: #OpenClaw #AI赚钱 #自动化 #副业 #创业*",
+    "date": "2026-03-24",
+    "tags": [],
+    "category": "tech",
+    "status": "published" as const,
+    "readTime": 2,
+    "relatedPostIds": [
+      "1",
+      "2",
+      "5"
+    ]
+  },
+  {
+    "id": "6",
+    "title": "Agent通道测试文章",
+    "summary": "这是一篇通过Agent通道自动发布的测试文章",
+    "tags": ["测试", "Agent通道", "龙虾博客"],
+    "date": "2026-05-11",
+    "readTime": 1,
+    "category": "tech",
+    "coverColor": "from-green-400 to-teal-400",
+    "status": "published" as const,
+    "content": `# Agent 通道测试文章
+
+这是一篇通过 **龙虾博客 Agent 通道** 自动发布的测试文章。
+
+## 测试通过 ✅
+- API 认证正常
+- 批量发布正常
+- 构建+部署正常
+
+## 结论
+Agent 通道建立成功！🎉`
+  },
+  {
+    "id": "7",
+    "title": "推理努力度分级 —— 按需省钱",
+    "summary": "推理努力度分级——按需省钱 DeepSeekTUI 的最大启示：AI 不是\"越智能越好\"，而是\"该省钱时省钱，该用劲时用劲\"。 一、问题：AI 编程助手的成本陷阱 用 AI 编程助手多了，你会发现一个矛盾： 简单任务（格式化代码、改个变量名）→ 用了最强的模型 → 浪费钱",
+    "tags": ["推理努力度", "分级", "成本优化", "LLM"],
+    "date": "2026-05-11",
+    "readTime": 4,
+    "category": "tech",
+    "coverColor": "from-violet-400 to-purple-500",
+    "status": "published" as const,
+    "content": `# 推理努力度分级——按需省钱
+
+> DeepSeek-TUI 的最大启示：AI 不是"越智能越好"，而是"该省钱时省钱，该用劲时用劲"。
+
+---
+
+## 一、问题：AI 编程助手的成本陷阱
+
+用 AI 编程助手多了，你会发现一个矛盾：
+
+\`\`\`
+简单任务（格式化代码、改个变量名）→ 用了最强的模型 → 浪费钱
+复杂任务（架构设计、安全审查）→ 用了最便宜的模型 → 质量不够
+\`\`\`
+
+ClawCode 的解决方案：**推理努力度分级（Reasoning Effort）**。
+
+---
+
+## 二、五级推理努力度
+
+\`\`\`rust
+pub enum ReasoningEffort {
+    Off,      // 无推理，最快最省
+    Low,      // 低推理
+    Medium,   // 中等推理（默认）
+    High,     // 高推理
+    Max,      // 最大推理，最慢最贵
+}
+\`\`\`
+
+### 各级适用场景
+
+| 级别 | 适用场景 | 速度 | 成本 | 模型选择 |
+|------|---------|:---:|:----:|---------|
+| **Off** | 格式化、简单改写、翻译 | 极快 | 极低 | DeepSeek-Flash |
+| **Low** | 常见 CRUD、简单 Bug 修复 | 快 | 低 | DeepSeek-Chat |
+| **Medium** | 日常开发、代码审查 | 正常 | 中 | DeepSeek-Chat |
+| **High** | 架构设计、复杂算法 | 慢 | 高 | DeepSeek-Reasoner |
+| **Max** | 安全审计、核心模块重构 | 极慢 | 极高 | DeepSeek-Reasoner |
+
+---
+
+## 三、Auto Mode：智能路由
+
+用户不需要手动切换——Auto Mode 会自动选择：
+
+\`\`\`rust
+pub struct AutoRouter {
+    /// 任务复杂度分析器
+    complexity_analyzer: ComplexityAnalyzer,
+    /// 成本感知
+    cost_optimizer: CostOptimizer,
+}
+
+impl AutoRouter {
+    pub async fn route(&self, task: &str) -> RoutingDecision {
+        // 1. 分析任务复杂度
+        let complexity = self.complexity_analyzer.analyze(task).await;
+        
+        // 2. 估算 Token 消耗
+        let estimated_tokens = self.estimate_tokens(task);
+        
+        // 3. 匹配最佳模型+推理级别
+        let config = self.cost_optimizer.optimize(complexity, estimated_tokens);
+        
+        RoutingDecision {
+            provider: config.provider,
+            model: config.model,
+            reasoning_effort: config.effort,
+            estimated_cost: config.estimated_cost,
+        }
+    }
+}
+\`\`\`
+
+### 复杂度分析依据
+
+| 维度 | 简单 | 中等 | 复杂 |
+|------|:---:|:---:|:---:|
+| 任务描述长度 | <100 字 | 100-500 字 | >500 字 |
+| 涉及文件数 | 1-2 个 | 3-5 个 | 6+ 个 |
+| 技术深度 | 基础语法 | 框架使用 | 系统设计 |
+| 风险等级 | 低 | 中 | 高 |
+| **路由结果** | **Off/Low** | **Medium** | **High/Max** |
+
+---
+
+## 四、成本对比
+
+以常见开发任务为例：
+
+| 任务 | Effort | 模型 | Token 消耗 | 费用 |
+|------|:------:|:----:|:---------:|:---:|
+| 格式化代码块 | Off | Flash | 200 | ¥0.001 |
+| 改一个函数参数 | Low | Chat | 1,000 | ¥0.005 |
+| 写一个 CRUD API | Medium | Chat | 5,000 | ¥0.025 |
+| 设计数据库表结构 | High | Reasoner | 8,000 | ¥0.08 |
+| 安全审计核心模块 | Max | Reasoner | 20,000 | ¥0.40 |
+
+**日积月累的效果**：
+
+\`\`\`
+一天 100 次调用：
+  × 全程用 Max：¥40+/天
+  × 全程用 Medium：¥2.5/天
+  ✓ Auto Mode 智能路由：¥1.2/天
+
+一个月（22 个工作日）：
+  × 全程 Max：¥880+/月
+  × 全程 Medium：¥55/月
+  ✓ Auto Mode：¥26/月
+\`\`\`
+
+Auto Mode 相比"一刀切"用最强模型，**节省 97% 的费用**。
+
+---
+
+## 五、用户手动控制
+
+Auto Mode 是默认行为，用户也可以通过命令手动覆盖：
+
+\`\`\`bash
+# 临时切换到高推理
+claw> /reason high 帮我设计这个模块的架构
+
+# 临时切换到省电模式
+claw> /reason off 把这几个文件格式化成标准风格
+
+# 查看当前设置
+claw> /settings
+当前推理努力度: medium (Auto Mode)
+
+# 永久修改默认设置
+claw> /config reasoning_effort auto
+\`\`\`
+
+---
+
+## 六、设计启示
+
+"推理努力度分级"这个设计从 DeepSeek-TUI 借鉴而来，但 ClawCode 把它做得更细（3 级 → 5 级）并且加入了智能路由。
+
+**它的核心哲学是**：
+
+> **不要把 AI 当成一个"万能大脑"来用。不同的任务需要不同的"脑力投入"。**
+> 
+> 就像你不会用超级计算机算 1+1，也不应该用最强模型格式化代码。
+> 
+> **该省省，该花花。省下来的钱，可以花在真正需要的地方。**
+
+---
+
+## 七、总结
+
+| 功能 | 解决的问题 | 节省效果 |
+|------|-----------|:-------:|
+| 5 级推理努力度 | 避免"杀鸡用牛刀" | 每任务节省 50-90% |
+| Auto Mode 智能路由 | 用户无需手动操心 | 综合节省 97% |
+| 命令手动覆盖 | 精确控制特殊情况 | 灵活应对 |
+
+**推理努力度分级的本质，是对 AI 成本的结构化管理。**
+`
+  },
+  {
+    "id": "8",
+    "title": "开源项目的商业化之路",
+    "summary": "开源项目的商业化之路 开源≠免费。开源项目的商业化不是\"变相收费\"，而是\"让愿意付费的人获得更多价值\"。 一、开源项目的商业化困境 做开源项目的人经常会遇到这种灵魂拷问： \"你开源了还怎么赚钱？\" \"既然开源了，为什么还要收费？\" \"收费了还算开源吗？\" 这些问题背后反映的是对\"开源商业化\"的误解。",
+    "tags": ["商业化", "开源", "商业模式", "独立开发者"],
+    "date": "2026-05-11",
+    "readTime": 5,
+    "category": "tech",
+    "coverColor": "from-yellow-400 to-amber-500",
+    "status": "published" as const,
+    "content": `# 开源项目的商业化之路
+
+> 开源≠免费。开源项目的商业化不是"变相收费"，而是"让愿意付费的人获得更多价值"。
+
+---
+
+## 一、开源项目的商业化困境
+
+做开源项目的人经常会遇到这种灵魂拷问：
+
+\`\`\`
+"你开源了还怎么赚钱？"
+"既然开源了，为什么还要收费？"
+"收费了还算开源吗？"
+\`\`\`
+
+这些问题背后反映的是对"开源商业化"的误解。
+
+### 真实数据
+
+| 开源项目 | 项目性质 | 商业模式 | 年收入 |
+|---------|---------|---------|:-----:|
+| GitLab | 开源核心 | 企业版收费 | $500M+ |
+| HashiCorp | MPL 协议 | 企业版收费 | $1B+ |
+| Databricks | Apache 2.0 | 云服务 | $1.5B+ |
+| 禅道 | 开源 | 企业版+服务 | ¥5000 万+ |
+| **我们的目标** | MIT 开源 | Pro 云服务 | ¥30-50 万/年 |
+
+**结论**：开源项目的商业化是成熟且被验证的路径。
+
+---
+
+## 二、商业化三原则
+
+ClawCode 的商业化遵循三条原则：
+
+### 原则一：开源的是代码，收费的是服务
+
+\`\`\`
+开源：所有核心代码（MIT License）
+收费：
+  ├── ☁️ 云服务（记忆同步、多Agent云端编排）
+  ├── 🔒 企业功能（私有化部署、SSO、审计）
+  └── 📚 内容（专栏、模板）
+\`\`\`
+
+**用户自己编译运行，所有本地功能完全免费。**
+
+### 原则二：免费版够用
+
+"够用"的定义：
+- 个人开发者的日常使用完全不受限
+- 单 Agent 模式 + DeepSeek/Kimi 接入
+- 本地工作记忆（当前会话内）
+
+**如果免费版体验很差，用户根本不会想到付费。**
+
+### 原则三：付费版真的值
+
+付费版解决的是"一个人搞不定"的问题：
+- 跨会话记忆云同步（多设备）
+- 多 Agent 云服务（云端算力）
+- 团队协作（多人共享）
+
+---
+
+## 三、定价策略
+
+### 为什么定这个价？
+
+| 产品 | 月费 | 对比 |
+|-----|:---:|------|
+| Cursor | $20 (¥145) | 行业标杆 |
+| GitHub Copilot | $10 (¥72) | 微软背书 |
+| JetBrains AI | $10 (¥72) | IDE 生态 |
+| **ClawCode Pro** | **¥19** | **1/7 的 Cursor 价格** |
+
+**定价思路**：
+- 对标 Cursor 的 ¥145，但我们定 ¥19
+- 不是"卖便宜了"，而是**针对中国市场的合理定价**
+- ¥19 的决策成本极低（一顿外卖），转化率更高
+
+### 为什么不免费？
+
+\`\`\`
+免费用户 → 100 人 × ¥0 = ¥0
+付费用户 → 5 人 × ¥19 = ¥95
+
+同样的精力维护 100 个免费用户 vs 5 个付费用户
+付费用户更愿意给反馈、更珍惜产品
+\`\`\`
+
+---
+
+## 四、获客渠道
+
+### 渠道一：开源社区（零成本）
+
+| 平台 | 策略 | 效果 |
+|-----|------|------|
+| **Gitee** | 主仓库，中文开发者聚集地 | Star 增长 → 自然流量 |
+| **GitHub** | 英文版仓库（未来） | 国际开发者 |
+| **知乎/掘金** | 技术文章引流 | SEO 长尾流量 |
+
+### 渠道二：内容营销（零成本）
+
+第一篇文章《我用 Rust 写了个 AI 编程助手》的目标：
+- 知乎：1000-5000 阅读
+- 掘金：500-2000 阅读
+- V2EX：200-1000 阅读
+
+**转化率预估**：
+\`\`\`
+10,000 总阅读 → 1% 点击 Gitee 链接 → 100 个 Star
+100 个 Star → 5% 愿意尝试 Pro → 5 个付费用户
+5 × ¥199/年 = ¥995/年
+\`\`\`
+
+### 渠道三：B站视频（零成本）
+
+一条好的技术视频能持续引流 6-12 个月。
+
+---
+
+## 五、收入模型
+
+### 保守估计（前 6 个月）
+
+| 收入来源 | 用户数 | ARPU | 月收入 |
+|---------|:-----:|:----:|:-----:|
+| Pro 订阅 | 50 | ¥19 | ¥950 |
+| 专栏订阅 | 30 | ¥49（一次性） | — |
+| 企业定制 | 1-2 单 | ¥5,000-15,000 | — |
+
+### 稳定期（12 个月后）
+
+\`\`\`
+月收入目标：¥5,000-10,000
+  ├── Pro 订阅：200 人 × ¥19 = ¥3,800
+  ├── 企业定制：1 单/月 × ¥8,000 = ¥8,000
+  └── 专栏/内容：¥200-500
+\`\`\`
+
+---
+
+## 六、经验教训
+
+### 踩过的坑
+
+1. **一开始想完全免费** — 结果没有动力维护，用户反馈也少
+2. **定价过低** — ¥9.9/月 → 用户反而怀疑产品质量，提到 ¥19 后转化率没降
+3. **功能划分不清** — 用户不知道免费版和付费版的区别
+
+### 做对了的事
+
+1. **先开发完再考虑商业化** — 产品成熟了，用户才愿意付费
+2. **使用体验优先** — 免费版体验好，用户才愿意推荐给同事
+3. **直接写付费代码** — \`feature_gate.rs\` 和 \`license.rs\` 从一开始就设计好了，不用后期重构
+
+---
+
+## 七、给开源项目商业化新手的建议
+
+1. **先做产品，再做商业** — 产品没做好的时候，收费只会赶走用户
+2. **免费版要真的能用** — 阉割版只会把用户推到竞品那里
+3. **定价要对标，但不照搬** — 中国市场有中国的定价逻辑
+4. **内容营销是零成本最好的获客方式** — 写文章、录视频、发帖子
+5. **收钱不丢人** — 用户愿意付费是对你工作的最大认可
+
+---
+
+> **开源是一种精神，商业化是一种能力。**
+> 
+> **有能力把开源项目商业化，才能持续投入、持续改进，最终回馈整个社区。**
+`
+  },
+  {
+    "id": "9",
+    "title": "总结与展望 + FAQ",
+    "summary": "总结与展望 12 篇文章，从记忆系统到多 Agent 协作，从 Rust 工程到商业化落地——是时候回头看看走过的路，也往前看看未来。 一、ClawCode 架构的总览图 把这 12 篇文章串起来，ClawCode 的完整架构就是：",
+    "tags": ["总结", "FAQ", "ClawCode", "路线图"],
+    "date": "2026-05-11",
+    "readTime": 6,
+    "category": "tech",
+    "coverColor": "from-pink-400 to-rose-500",
+    "status": "published" as const,
+    "content": `# 总结与展望
+
+> 12 篇文章，从记忆系统到多 Agent 协作，从 Rust 工程到商业化落地——是时候回头看看走过的路，也往前看看未来。
+
+---
+
+## 一、ClawCode 架构的总览图
+
+把这 12 篇文章串起来，ClawCode 的完整架构就是：
+
+\`\`\`
+┌─────────────────────────────────────────────────────────────────┐
+│                        用户交互层                                │
+│  CLI (REPL)  │  Web UI (React 19)  │  UI Block JSON Format      │
+├─────────────────────────────────────────────────────────────────┤
+│                        核心调度层                                │
+│  SICA 元循环 (Scan→Identify→Choose→Act)   │  LADDER 任务分解     │
+│  ↓                                    ↓                         │
+├─────────────────────────────────────────────────────────────────┤
+│                        智能体层                                  │
+│  Planner → Coder → Reviewer → Debugger → SOP Agent              │
+│  ↑                                      ↓                       │
+├──────────────────────────┬──────────────────────────────────────┤
+│    能力层                │         记忆层                       │
+│  claw-unicli (CLI执行)   │  工作记忆 (WM)                      │
+│  工具集 (11个工具)        │  长期记忆 (LTM)                     │
+│  代码知识图谱 (GraphRAG)  │  自适应调优 (Tuning)               │
+│  Provider 适配层          │  A/B 测试框架                       │
+├──────────────────────────┴──────────────────────────────────────┤
+│                         SOP 流程层                               │
+│  标准流程模板  │  质量门禁  │  检查清单                          │
+├─────────────────────────────────────────────────────────────────┤
+│                        输出层                                    │
+│  代码/文件产出  │  执行报告  │  状态反馈                         │
+└─────────────────────────────────────────────────────────────────┘
+\`\`\`
+
+### 7 层架构的职责
+
+| 层 | 核心职责 | 关键 Crate |
+|---|---------|-----------|
+| 用户交互 | 接收指令、展示结果 | claw-cli, claw-server |
+| 核心调度 | 任务分解、循环改进 | claw-core (meta_loop, engine) |
+| 智能体 | 分工协作、专业执行 | claw-orchestrator, claw-agents |
+| 能力 | 执行环境、外部交互 | claw-unicli, claw-tools, claw-code-graph |
+| 记忆 | 跨会话持久化 | claw-memory (12 个子模块) |
+| SOP | 流程标准化 | claw-sop |
+| 输出 | 成果交付 | 各 crate 的 output 模块 |
+
+---
+
+## 二、架构选择的得与失
+
+### 做得对的选择
+
+| 决策 | 理由 |
+|------|------|
+| **用 Rust** | 性能好、内存安全、适合长期运行的守护进程 |
+| **模块化设计（34+ crate）** | 每个 crate 职责清晰，可独立开发/测试 |
+| **多 Provider 架构** | 不绑定任何一家 AI 供应商 |
+| **跨会话记忆优先** | 核心差异化，竞品不做或做不好 |
+| **SOP 流程抽象** | 把"最佳实践"代码化，可复用 |
+
+### 可以做得更好的
+
+| 决策 | 反思 |
+|------|------|
+| **开发初期文档不足** | 后期补文档花了大量时间 |
+| **测试覆盖不够全面** | 359 个测试覆盖了核心逻辑，但边缘案例仍有遗漏 |
+| **编译警告未及时处理** | 60+ 个 unused/dead_code 警告长期存在 |
+| **Windows 打包未做** | .msi 安装包一直没做，用户上手不够友好 |
+
+---
+
+## 三、AI 编程助手的未来
+
+### 趋势一：从"补全"到"协作"
+
+\`\`\`
+Copilot (2021)：补全下一行代码
+Cursor (2023)：对话式编程
+ClawCode (2026)：多 Agent 团队协作
+未来 (2027+)：全自动编程 + 人工审核
+\`\`\`
+
+### 趋势二：从"通用"到"专属"
+
+未来的 AI 编程助手不是"一个模型打天下"，而是：
+- **为你的团队定制**的 Agent 角色
+- **为你项目定制**的知识库
+- **为你流程定制**的 SOP 模板
+
+### 趋势三：从"云端"到"混合"
+
+\`\`\`
+纯云端 → 云端为主，本地为辅 → 混合架构
+                              ↓
+    简单任务：本地模型（Ollama）— 免费、隐私
+    复杂任务：云端模型（DeepSeek）— 能力强
+    关键任务：私有化部署 — 数据安全
+\`\`\`
+
+### 趋势四：从"工具"到"平台"
+
+\`\`\`
+ClawCode CLI     → 工具
+ClawCode Web UI  → 服务
+ClawCode Market  → 平台（SOP 模板市场、Agent 插件）
+\`\`\`
+
+---
+
+## 四、一些想法
+
+### 关于"AI 会取代程序员吗？"
+
+这个专栏写了 12 篇关于 AI 编程助手的文章，我的看法是：
+
+**AI 不会取代程序员，但会用 AI 的程序员会取代不会用的。**
+
+这不是危言耸听，而是历史规律。就像当年 IDE 没有取代程序员，而是让程序员更高效一样——AI 编程助手也是同样的角色。
+
+### 关于"为什么要自己做？"
+
+有人问我：Cursor 和 Copilot 已经这么强了，为什么还要自己写？
+
+答案很简单：**因为我想让 AI 编程助手按照我的方式来思考。**
+
+Cursor 和 Copilot 是"别人思考的 AI"，ClawCode 是"我思考的 AI"。它记得我的项目规范、按照我的代码风格、遵循我的 SOP 流程。
+
+这才是"助手"的真正含义——不是替代你，而是按照你的方式帮你。
+
+### 关于开源
+
+ClawCode 从第一天起就是开源的。不是因为开源能赚钱，而是因为**只有开源，才能让 AI 编程助手真正服务开发者**。
+
+闭源的工具是"给你什么，你就用什么"。开源的工具是"你想要什么，就改什么"。
+
+---
+
+## 五、致谢
+
+感谢你读到这里。
+
+这 12 篇文章不是教科书式的理论讲解，而是 ClawCode 这个真实项目的工程实践记录。如果你从中获得了一些启发，那这个专栏就值了。
+
+如果你对 ClawCode 感兴趣，欢迎到 Gitee 逛逛：
+
+> **项目地址**：https://gitee.com/networkadmin/clawcode
+
+有任何问题，随时在公众号「AI养成笔记」留言。
+
+---
+
+### 附录：专栏目录回看
+
+| 序号 | 标题 | 核心内容 |
+|:---:|------|---------|
+| 1 | AI 编程助手进化史 | 从 Copilot 到 ClawCode，为什么不做一个"有记忆"的助手 |
+| 2 | 记忆为什么这么难做 | 会话窗口的诅咒、记忆的分层设计思路 |
+| 3 | 存储与检索 | MemoryRecord 设计、MemoryStore Trait、SQLite 实现 |
+| 4 | 调优与实验 | Decay 衰减、Reflect 自省、自适应权重、A/B 测试 |
+| 5 | 多 Agent 协作 | Agent 角色定义、任务分解、Pipeline Agent、通信机制 |
+| 6 | SICA 元循环 | Scan→Identify→Choose→Act 四阶段、质量验证 |
+| 7 | Rust 工程实践 | 34+ crate 的 workspace 组织、Provider 设计、工具系统 |
+| 8 | SOP 标准流程 | SOP 定义、阶段控制、质量门禁实战案例 |
+| 9 | 代码知识图谱 | 图构建、增量更新、安全分析、GraphRAG |
+| 10 | 推理努力度分级 | Off/Low/Medium/High/Max、Auto Mode、成本优化 |
+| 11 | 商业化之路 | 定价策略、获客渠道、收入模型、经验教训 |
+| 12 | 总结与展望 | 架构回顾、未来趋势、一些想法 |
+`
+  },
+  {
+    "id": "10",
+    "title": "AI 编程助手进化史 —— 从 Copilot 到 ClawCode",
+    "summary": "第 1 篇：AI 编程助手进化史——从 Copilot 到 ClawCode 🔓 免费试读 一、三代 AI 编程助手的进化 第一代：代码补全（20182022） 代表产品：GitHub Copilot、TabNine 核心能力： 根据上下文预测下一段代码 简单的注释→代码转换 单行/单函数补全",
+    "tags": ["AI编程助手", "Copilot", "ClawCode", "进化史"],
+    "date": "2026-05-11",
+    "readTime": 3,
+    "category": "tech",
+    "coverColor": "from-blue-400 to-indigo-500",
+    "status": "published" as const,
+    "content": `# 第 1 篇：AI 编程助手进化史——从 Copilot 到 ClawCode
+
+> 🔓 免费试读
+
+---
+
+## 一、三代 AI 编程助手的进化
+
+### 第一代：代码补全（2018-2022）
+
+**代表产品**：GitHub Copilot、TabNine
+
+**核心能力**：
+- 根据上下文预测下一段代码
+- 简单的注释→代码转换
+- 单行/单函数补全
+
+**局限**：
+- 没有"对话"能力
+- 无法理解项目整体架构
+- 每个会话都是全新的开始
+
+### 第二代：对话式编程（2023-2024）
+
+**代表产品**：Cursor、Claude Dev、DeepSeek-TUI
+
+**核心能力**：
+- 多轮对话，理解上下文
+- 文件读写、终端操作
+- 项目级理解（部分）
+
+**局限**：
+- **没有长期记忆**——每个新会话还是重新开始
+- 单 Agent 模式——写代码、审查、测试全由一个人干
+- 云端绑定——数据必须上传
+
+### 第三代：多 Agent + 记忆系统（2025-2026）
+
+**代表产品**：ClawCode、Devin
+
+**核心能力**：
+- 跨会话记忆——记住项目约定和用户偏好
+- 多 Agent 协作——分工干活（Planner/Coder/Reviewer/Debugger）
+- 可私有化部署——数据不出企业内网
+
+---
+
+## 二、为什么"记忆"这么重要？
+
+想象一下这个场景：
+
+> 你用 Cursor 开发一个 Rust Web 项目。
+> 你告诉它："我们用 Axum 框架，handler 放在 handlers/ 目录下。"
+> 
+> 它记住了——在**这个会话**内表现完美。
+> 
+> 但第二天新开一个会话：
+> 它又提议用 Actix。
+> Handler 放在 main.rs 里。
+> 还把项目结构搞得一团糟。
+
+这就是当前所有 AI 编程助手的通病：**每一场对话都是第一次约会**。
+
+## 三、ClawCode 的解决方案
+
+ClawCode 的核心差异化就是回答一个问题：**怎么让 AI 助手"记住"？**
+
+\`\`\`
+你的声明              → 会话 1 记住了吗？ → 会话 2 还记得吗？
+"用 Axum 框架"        → ✅ 记住了        → ❌ 忘了（其他工具）
+"handler 放 handlers/" → ✅ 记住了        → ❌ 忘了（其他工具）
+"数据库用 SQLite"      → ✅ 记住了        → ❌ 忘了（其他工具）
+
+ClawCode 的记忆系统会让它：
+"用 Axum 框架"        → ✅ 会话 1 ✅ 会话 2 ✅ 会话 10
+"handler 放 handlers/" → ✅ 会话 1 ✅ 会话 2 ✅ 会话 10
+\`\`\`
+
+## 四、ClawCode vs 现有产品
+
+| 维度 | Copilot | Cursor | DeepSeek-TUI | ClawCode |
+|------|---------|--------|-------------|----------|
+| 代码补全 | ✅ 最强 | ✅ | ✅ | ✅ |
+| 对话编程 | ❌ | ✅ | ✅ | ✅ |
+| 跨会话记忆 | ❌ | ❌ | ❌ | ✅ |
+| 多 Agent | ❌ | ❌ | ❌ | ✅ |
+| 本地部署 | ❌ | ❌ | ✅ | ✅ |
+| 中文化 | ❌ | ❌ | ✅ | ✅ |
+| 开源 | ❌ | ❌ | ✅ | ✅ 部分 |
+| 价格 | $10/月 | $20/月 | 免费 | ¥19/月（Pro） |
+
+## 五、这个专栏会带你做什么？
+
+这不是一个"学 Rust"的教程。
+
+这是一个**架构设计**的实战记录——从零构建一个 AI 编程助手的过程中，如何设计：
+1. 跨会话记忆系统
+2. 多 Agent 协作框架
+3. 复杂任务分解引擎
+4. 标准操作流程
+5. 7 层 Rust 架构
+
+项目已经开源在 Gitee：https://gitee.com/networkadmin/clawcode
+
+下篇预告：AI 编程助手的"记忆"为什么这么难做？
+`
+  },
+  {
+    "id": "11",
+    "title": "AI 编程助手的\"记忆\"为什么这么难做？",
+    "summary": "AI 编程助手的\"记忆\"为什么这么难做？ 跨会话记忆系统是 ClawCode 最大的差异化能力，也是为什么它能比 Cursor 和 Copilot\"更像队友\" 开篇 先想一个问题：你的 AI 编程助手，记得住你的名字吗？ 这听起来是个玩笑，但试试看：",
+    "tags": ["跨会话记忆", "LLM", "AI编程助手"],
+    "date": "2026-05-11",
+    "readTime": 6,
+    "category": "tech",
+    "coverColor": "from-purple-400 to-pink-400",
+    "status": "published" as const,
+    "content": `# AI 编程助手的"记忆"为什么这么难做？
+
+> 跨会话记忆系统是 ClawCode 最大的差异化能力，也是为什么它能比 Cursor 和 Copilot"更像队友"
+
+---
+
+## 开篇
+
+先想一个问题：**你的 AI 编程助手，记得住你的名字吗？**
+
+这听起来是个玩笑，但试试看：
+
+1. 告诉 Cursor："我们项目用 \`Axum\` 框架，你不用问我了"
+2. 关掉编辑器，喝杯咖啡
+3. 打开编辑器，新会话
+
+结果通常是这样：
+> "帮我在项目中加一个 HTTP 路由"
+> "好的，用 \`Actix-web\` 实现……"
+
+它忘了。不是你说了它没听懂，而是**它根本没有"记住"这个功能**。
+
+---
+
+## 一、为什么 AI 编程助手普遍"不长记性"？
+
+### 1.1 会话窗口的诅咒
+
+所有的 AI 编程助手都基于 LLM（大语言模型）。而 LLM 有一个根本限制：
+
+**每次对话都是一个新的上下文窗口。**
+
+\`\`\`
+会话 A                       会话 B
+┌──────────────────┐        ┌──────────────────┐
+│ System Prompt    │        │ System Prompt    │
+│ User: "用Axum"   │   →    │ User: "加路由"   │
+│ AI: "好的"       │        │ AI: "用Actix?"   │
+│ ...              │        │ ...              │
+└──────────────────┘        └──────────────────┘
+    内容已消失                      内容不存在
+\`\`\`
+
+即使是最先进的模型（DeepSeek V4 的 1M Token、Claude 的 200K Token），也解决不了**跨会话**的记忆问题。每次新会话都是"重新开始"。
+
+### 1.2 这不是模型的问题，是架构的问题
+
+Cursor 之所以记不住，不是因为 Claude 或 GPT 不够聪明，而是因为 **产品层没有设计记忆系统**。它把每次对话当成独立的""黑盒事务""，而不是一个持续演进的过程。
+
+| 产品 | 会话内记忆 | 跨会话记忆 | 为什么？ |
+|------|:---------:|:---------:|---------|
+| Cursor | ✅ 很强 | ❌ 没有 | 产品设计没做 |
+| Copilot | ✅ 一般 | ❌ 没有 | 产品设计没做 |
+| DeepSeek-TUI | ✅ 很强 | ❌ 没有 | 产品设计没做 |
+| **ClawCode** | ✅ 很强 | **✅ 有** | **专门设计了记忆系统** |
+
+> **结论**：跨会话记忆不是 AI 能力问题，是**工程架构问题**。
+
+---
+
+## 二、ClawCode 的解决方案：四层记忆架构
+
+ClawCode 设计了一套完整的记忆系统（\`claw-memory\` crate），参考了认知科学中的人类记忆模型。
+
+### 2.1 架构全景
+
+\`\`\`
+┌─────────────────────────────────────────────────────────┐
+│                  记忆系统架构图                          │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  🔵 工作记忆 (Working Memory)                            │
+│  ├── 当前会话上下文                                      │
+│  ├── 最近的交互记录                                      │
+│  └── 临时决策缓存                                        │
+│      ↓（反射 → 重要性评分 → 提升）                        │
+│                                                         │
+│  🟢 短期记忆 (Short-term Memory)                         │
+│  ├── 跨 7 天的会话历史                                   │
+│  ├── 自动压缩与摘要                                      │
+│  └── 重要性衰减机制                                      │
+│      ↓（衰减引擎 → 持续清理）                             │
+│                                                         │
+│  🟡 长期记忆 (Long-term Memory)                          │
+│  ├── 用户偏好与项目约定                                   │
+│  ├── 重要决策记录                                        │
+│  └── SQLite 持久化存储                                   │
+│      ↓（语义搜索 + 权重调优）                             │
+│                                                         │
+│  🟣 元记忆 (Meta Memory)                                 │
+│  ├── 记忆系统自身的监控与调优                             │
+│  ├── 自适应权重调节                                      │
+│  └── A/B 测试框架                                       │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+\`\`\`
+
+### 2.2 工作记忆（Working Memory）— 代码实现
+
+工作记忆是**最底层**的记忆层，对应我们当前的"思考空间"。
+
+\`\`\`rust
+// claw-memory/src/working_memory.rs
+
+/// 工作记忆配置
+pub struct WorkingMemoryConfig {
+    /// 每会话最大条目数（默认 50）
+    pub session_capacity: usize,
+    /// 是否自动提升高重要性条目到长期记忆
+    pub auto_promote: bool,
+    /// 自动提升的重要性阈值 (0.0 ~ 1.0)
+    pub auto_promote_threshold: f32,
+}
+
+/// 工作记忆条目
+pub struct WorkingMemoryItem {
+    pub id: String,
+    pub content: String,       // 记忆内容
+    pub importance: f32,       // 重要性评分 (0.0~1.0)
+    pub created_at: String,
+    pub updated_at: String,
+}
+\`\`\`
+
+每个会话有自己的工作记忆。当条目数超过容量时，**最旧且重要性最低**的条目会被淘汰。
+
+\`\`\`
+工作记忆中的项目状态：
+┌──────────┐
+│ Item A   │ importance: 0.9  ← 高重要性，保留
+├──────────┤
+│ Item B   │ importance: 0.7  ← 中重要性，保留
+├──────────┤
+│ Item C   │ importance: 0.3  ← 低重要性，优先淘汰
+├──────────┤
+│ Item D   │ importance: 0.1  ← 低重要性，优先淘汰
+└──────────┘
+     ↓ 超容量时
+┌──────────┐
+│ Item A   │ 保留
+├──────────┤
+│ Item B   │ 保留
+└──────────┘
+\`\`\`
+
+### 2.3 长期记忆（Long-term Memory）— 核心数据结构
+
+当工作记忆中的条目被认为"重要"时，它会被**提升**到长期记忆，并持久化到 SQLite。
+
+\`\`\`rust
+// claw-memory/src/memory_store.rs
+
+/// 长期记忆记录
+pub struct MemoryRecord {
+    pub id: String,
+    pub content: String,        // 记忆内容
+    pub category: MemoryCategory, // General | Code | Project | Preference | Decision
+    pub importance: ImportanceScore,  // LOW | MEDIUM | HIGH | CRITICAL
+    pub tags: Vec<String>,      // 标签，用于分类检索
+    pub related_memories: Vec<String>, // 关联的记忆ID
+    pub created_at: String,
+    pub last_accessed: String,
+    pub access_count: u64,      // 访问次数（用于衰减计算）
+    pub metadata: HashMap<String, String>, // 扩展字段
+}
+\`\`\`
+
+**关键设计**：每个记忆记录都带 \`importance\` 和 \`access_count\`，这是后面"遗忘机制"的基础。
+
+### 2.4 衰减机制（Decay）— 该忘的得忘
+
+人脑会遗忘，好的记忆系统也应该会。ClawCode 实现了**主动遗忘**机制：
+
+\`\`\`rust
+// claw-memory/src/decay.rs
+
+/// 衰减公式
+/// effective_weight = base_weight × recency_factor × frequency_factor
+///
+/// recency_factor = 2^(-days_since_last_access / half_life_days)
+/// frequency_factor = min(access_count / frequency_normalizer, 1.0)
+\`\`\`
+
+简单说：
+- **经常访问的记忆** → 权重增强，保留更久
+- **长时间不访问的记忆** → 权重衰减，最终被清理
+- **半衰期配置**：默认 30 天，可自定义
+
+### 2.5 反射机制（Reflection）— 自动提炼核心信息
+
+最有趣的设计：**反射机制** 定期扫描工作记忆，自动识别哪些信息值得记住。
+
+\`\`\`rust
+// claw-memory/src/reflect.rs
+
+pub struct ReflectConfig {
+    /// 自动提升的重要性阈值
+    pub auto_promote_threshold: f32,
+    /// 触发反射的最大工作记忆条目数
+    pub max_working_items_before_reflect: usize,
+    /// 是否自动分类提升的记忆
+    pub auto_categorize: bool,
+    /// 是否生成摘要
+    pub summarize_related: bool,
+}
+\`\`\`
+
+**反射流程**：
+1. 工作记忆条目数达到阈值 → 触发反射
+2. 扫描所有条目，计算重要性评分
+3. 重要性高的 → 提升到长期记忆
+4. 相关的条目 → 合并成摘要
+5. 冗余/低价值条目 → 清理
+
+---
+
+## 三、实际效果：ClawCode 的"记忆"长什么样？
+
+### 场景 1：记住项目约定
+
+\`\`\`bash
+# 会话 1
+用户：我们项目用 Axum 框架，所有 handler 放在 handlers/ 目录下
+ClawCode：好的，我已记住这个约定。
+
+# 会话 2（第二天）
+用户：帮我添加一个用户注册的 handler
+ClawCode：好的，按照约定，我在 handlers/user.rs 中创建注册 handler。
+           （它记得！不需要再重复说）
+\`\`\`
+
+### 场景 2：记住开发者偏好
+
+\`\`\`bash
+# 在多次交互后，ClawCode 自动学习
+用户：这个函数命名改成 snake_case
+ClawCode：好的，已修改。我记住了你的命名偏好：函数名使用 snake_case。
+
+# 后续代码生成
+ClawCode：我来生成这个模块...
+           （自动使用 snake_case 命名规则）
+\`\`\`
+
+### 场景 3：跨会话的 Bug 修复记录
+
+\`\`\`bash
+# 会话 1
+用户：这个数据库连接泄漏了，需要加事务管理
+（修复完成后，问题记录被存入长期记忆）
+
+# 会话 2（一周后）
+用户：分析一下数据库连接代码
+ClawCode：我注意到这个模块之前有过连接泄漏问题，
+          这次的改动没有包含事务管理，建议加上。
+           （它记住了历史问题！）
+\`\`\`
+
+---
+
+## 四、技术难点与取舍
+
+### 难点 1：什么该记住，什么该忘？
+
+这是记忆系统**最核心**的难题。ClawCode 的做法：
+
+| 应该记住 | 应该遗忘 |
+|---------|---------|
+| 项目框架约定（"用 Axum"） | 一次性操作（"帮我保存文件"） |
+| 代码规范偏好（"用 snake_case"） | 临时对话内容（"你好"） |
+| 架构决策（"用 PostgreSQL"） | 错误堆栈的细节 |
+| 用户身份信息 | 中间状态变量 |
+
+通过 **重要性评分 + 衰减机制** 自动完成筛选，不需要用户手动管理。
+
+### 难点 2：记忆冲突
+
+如果同一条信息出现矛盾怎么办？
+
+ClawCode 实现了**对抗性验证**模块（\`adversarial.rs\`），专门检测记忆矛盾：
+
+\`\`\`rust
+pub enum ResolveStrategy {
+    /// 新记忆覆盖旧记忆
+    Override,
+    /// 保留高重要性的一方
+    KeepHighest,
+    /// 合并两条记忆
+    Merge,
+    /// 标记为矛盾，等待人工确认
+    FlagForReview,
+}
+\`\`\`
+
+默认使用 \`KeepHighest\` 策略，保留重要性评分更高的那条记忆。
+
+### 难点 3：性能
+
+跨会话记忆需要持久化存储，每次对话都要加载相关记忆，会增加响应时间。
+
+ClawCode 的优化：
+1. **延迟加载**：只在需要时检索记忆，不全部加载
+2. **缓存机制**：高频记忆缓存到内存
+3. **语义搜索**：用向量嵌入搜索相关记忆，而不是全量扫描
+
+---
+
+## 五、总结
+
+**AI 编程助手的"记忆"之所以难做，不是因为 AI 不够聪明，而是因为这个问题需要一套完整的系统工程。**
+
+ClawCode 用 4 层记忆架构（工作记忆 → 短期记忆 → 长期记忆 → 元记忆）解决了这个问题，包含 15+ 个子模块、4000+ 行 Rust 代码。
+
+这不是一个"能加就加"的特性，而是**整个产品的核心架构设计**。这也是为什么 Cursor 和 Copilot 至今没有跨会话记忆——要从零补上这个能力，需要重写大量的基础架构。
+
+> **下一篇文章预告**：《跨会话记忆系统设计（上）——SQLite 持久化与向量检索》，我会详解记忆数据的存储、检索和语义搜索的实现。
+`
+  }
+
+
+
+
+
+
+];

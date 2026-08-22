@@ -19,13 +19,12 @@ export const LoginPage: React.FC = () => {
     setError('');
     setIsLoading(true);
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    if (await login(username, password)) {
+    // FIX (VULN-0004): 调用真实的服务端登录接口 /api/admin/login
+    const result = await login(username, password);
+    if (result.success) {
       navigate(from, { replace: true });
     } else {
-      setError('用户名或密码错误');
+      setError(result.message || '用户名或密码错误');
     }
 
     setIsLoading(false);

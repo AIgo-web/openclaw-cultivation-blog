@@ -54,7 +54,7 @@ export default function PostDetailPage() {
   useEffect(() => {
     if (!post) return;
     const prevTitle = document.title;
-    document.title = `${post.title} - Clawcode龙虾养成计划`;
+    document.title = `${post.title} - OpenClaw 龙虾养成计划`;
 
     // description
     let descEl = document.querySelector<HTMLMetaElement>('meta[name="description"]');
@@ -128,7 +128,7 @@ export default function PostDetailPage() {
       description: post.summary,
       url: articleUrl,
       image: post.coverImage,
-      author: 'Clawcode 折腾人',
+      author: 'OpenClaw 折腾人',
       publishedTime: pubDate,
       tags: post.tags,
     });
@@ -331,7 +331,7 @@ export default function PostDetailPage() {
 
         {/* 打赏 */}
         <div className="flex flex-wrap items-center justify-center py-4 mb-8">
-          <Donation author="Clawcode" />
+          <Donation author="OpenClaw" />
         </div>
 
         {/* Comment Section */}
@@ -411,12 +411,12 @@ export default function PostDetailPage() {
               .filter(p =>
                 p.id !== post.id &&
                 p.status !== 'draft' &&
-                p.tags.some(t => post.tags.includes(t))
+                (p.tags && post.tags && Array.isArray(p.tags) && Array.isArray(post.tags)) && p.tags.some(t => post.tags.includes(t))
               )
               .sort((a, b) => {
                 // 共同标签越多越靠前
-                const aScore = a.tags.filter(t => post.tags.includes(t)).length;
-                const bScore = b.tags.filter(t => post.tags.includes(t)).length;
+                const aScore = (a.tags && post.tags && Array.isArray(a.tags) && Array.isArray(post.tags)) ? a.tags.filter(t => post.tags.includes(t)).length : 0;
+                const bScore = (b.tags && post.tags && Array.isArray(b.tags) && Array.isArray(post.tags)) ? b.tags.filter(t => post.tags.includes(t)).length : 0;
                 return bScore - aScore;
               })
               .slice(0, 4);
@@ -444,7 +444,7 @@ export default function PostDetailPage() {
                       <span>·</span>
                       <span>约 {related.readTime} 分钟</span>
                     </div>
-                    {related.tags.filter(t => post.tags.includes(t)).length > 0 && (
+                    {(related.tags && post.tags && Array.isArray(related.tags) && Array.isArray(post.tags) && related.tags.filter(t => post.tags.includes(t)).length > 0) && (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {related.tags.filter(t => post.tags.includes(t)).slice(0, 2).map(t => (
                           <span key={t} className={`text-xs px-2 py-0.5 rounded-full ${getTagColor(t)}`}>{t}</span>

@@ -20,10 +20,10 @@ export interface SEOMetadata {
 
 // 默认博客信息
 const BLOG_INFO = {
-  name: 'ClawCode 龙虾养成计划',
-  description: '记录 ClawCode AI Agent 的折腾历程、技巧心得与踩坑实录。',
+  name: 'OpenClaw 龙虾养成计划',
+  description: '记录 OpenClaw AI Agent 的折腾历程、技巧心得与踩坑实录。',
   url: 'https://openclaw.ai',
-  author: 'ClawCode 折腾人',
+  author: 'OpenClaw 折腾人',
 };
 
 /**
@@ -269,14 +269,14 @@ export function generatePersonSchema(): string {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'Person',
-    name: 'ClawCode 折腾人',
+    name: 'OpenClaw 折腾人',
     url: BLOG_URL,
-    description: 'AI Agent 爱好者，ClawCode 深度用户，专注于 AI 自动化与工作流配置',
+    description: 'AI Agent 爱好者，OpenClaw 深度用户，专注于 AI 自动化与工作流配置',
     sameAs: [
       'https://github.com/AIgo-web',
     ],
     knowsAbout: [
-      'ClawCode AI Agent',
+      'OpenClaw AI Agent',
       'Skill 开发',
       'QQ Bot 集成',
       'Automation 自动化',

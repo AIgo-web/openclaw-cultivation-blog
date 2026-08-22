@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Search, CheckSquare, Square, Minus, Download, Upload, ArrowUpDown, Home } from 'lucide-react';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { usePosts } from '../../contexts/PostsContext';
-import { exportPosts, exportPostsAsZip } from '../../utils/exportPost';
+import { exportPosts } from '../../utils/exportPost';
 import type { Post } from '../../types';
-import { calcReadTime } from '../../utils/readTime';
 
 type SortKey = 'date-desc' | 'date-asc' | 'status';
 
@@ -73,7 +72,7 @@ export const PostList: React.FC = () => {
   const handleBatchExport = () => {
     if (selectedIds.size === 0) return;
     const toExport = posts.filter(p => selectedIds.has(p.id));
-    exportPostsAsZip(toExport);
+    exportPosts(toExport);
   };
 
   const handleOpenHome = () => {
@@ -127,7 +126,7 @@ export const PostList: React.FC = () => {
       category,
       date,
       status: 'draft',
-      readTime: calcReadTime(body.trim()),
+      readTime: Math.ceil(body.split(/\s+/).length / 200),
     };
   };
 

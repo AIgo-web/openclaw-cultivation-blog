@@ -1,189 +1,63 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import { hashPassword, verifyPassword, generateSalt, formatStoredHash, parseStoredHash } from '../../utils/crypto';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { getAuthToken, setAuthToken } from '../../services/authToken';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   username: string | null;
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
-  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
+  changePassword: () => { success: boolean; message: string };
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// 密码存储 key（存储格式：salt:hash）
-const PASSWORD_KEY = 'adminPasswordHash';
-const DEFAULT_PASSWORD = 'admin123';
-
-// 会话配置
-const SESSION_KEY = 'adminSession';
-const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 分钟（毫秒）
-
-interface SessionData {
-  isAuthenticated: boolean;
-  loginTime: number;
-}
-
-/**
- * 初始化默认密码（首次使用时）
- * 生成随机盐值并哈希默认密码
- */
-async function initDefaultPassword(): Promise<void> {
-  const existing = localStorage.getItem(PASSWORD_KEY);
-  if (!existing) {
-    const salt = generateSalt();
-    const hash = await hashPassword(DEFAULT_PASSWORD, salt);
-    localStorage.setItem(PASSWORD_KEY, formatStoredHash(salt, hash));
-  }
-}
-
-/**
- * 获取存储的密码哈希信息
- */
-function getStoredPasswordHash(): { salt: string; hash: string } | null {
-  try {
-    const stored = localStorage.getItem(PASSWORD_KEY);
-    if (!stored) return null;
-    return parseStoredHash(stored);
-  } catch {
-    return null;
-  }
-}
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [username, setUsername] = useState<string | null>(null);
 
-  // 从 localStorage 恢复会话
-  const restoreSession = () => {
-    try {
-      const sessionJson = localStorage.getItem(SESSION_KEY);
-      if (sessionJson) {
-        const session: SessionData & { username?: string } = JSON.parse(sessionJson);
-        const now = Date.now();
-        const sessionAge = now - session.loginTime;
-
-        // 检查会话是否仍然有效（10 分钟内）
-        if (session.isAuthenticated && sessionAge < SESSION_TIMEOUT) {
-          setIsAuthenticated(true);
-          setUsername(session.username || 'admin');
-          // 刷新登录时间戳（延长会话）
-          updateSessionTimestamp();
-        } else {
-          // 会话已过期
-          localStorage.removeItem(SESSION_KEY);
-          setIsAuthenticated(false);
-          setUsername(null);
-        }
-      } else {
-        setIsAuthenticated(false);
-        setUsername(null);
-      }
-    } catch (error) {
-      console.error('Failed to restore session:', error);
-      localStorage.removeItem(SESSION_KEY);
+  // FIX (VULN-0004): 认证状态由服务端签发/校验的 token 决定，不再信任 localStorage 会话标志。
+  useEffect(() => {
+    const token = getAuthToken();
+    if (token) {
+      // 有 token 视为已登录（真实校验在每次管理 API 调用时由后端执行）
+      setIsAuthenticated(true);
+      setUsername('admin');
+    } else {
       setIsAuthenticated(false);
       setUsername(null);
-    } finally {
-      setIsLoading(false);
     }
-  };
-
-  // 更新会话时间戳（不修改认证状态）
-  const updateSessionTimestamp = () => {
-    try {
-      const sessionJson = localStorage.getItem(SESSION_KEY);
-      if (sessionJson) {
-        const session: SessionData = JSON.parse(sessionJson);
-        session.loginTime = Date.now();
-        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      }
-    } catch (error) {
-      console.error('Failed to update session timestamp:', error);
-    }
-  };
-
-  useEffect(() => {
-    // 应用加载时初始化密码并恢复会话
-    initDefaultPassword().then(() => restoreSession());
-
-    // 定期检查会话是否过期（每 30 秒检查一次）
-    const sessionCheckInterval = setInterval(() => {
-      const sessionJson = localStorage.getItem(SESSION_KEY);
-      if (sessionJson) {
-        try {
-          const session: SessionData = JSON.parse(sessionJson);
-          const now = Date.now();
-          const sessionAge = now - session.loginTime;
-
-          if (session.isAuthenticated && sessionAge >= SESSION_TIMEOUT) {
-            // 会话已过期，清除认证状态
-            localStorage.removeItem(SESSION_KEY);
-            setIsAuthenticated(false);
-          }
-        } catch (error) {
-          console.error('Session check failed:', error);
-        }
-      }
-    }, 30000); // 30 秒检查一次
-
-    return () => clearInterval(sessionCheckInterval);
+    setIsLoading(false);
   }, []);
 
-  // 页面获得焦点时更新会话时间戳
-  useEffect(() => {
-    const handleFocus = () => {
-      if (isAuthenticated) {
-        updateSessionTimestamp();
+  const login = async (usernameInput: string, password: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: usernameInput, password }),
+      });
+      if (!res.ok) {
+        return { success: false, message: '用户名或密码错误' };
       }
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [isAuthenticated]);
-
-  const login = useCallback(async (username: string, password: string): Promise<boolean> => {
-    const hashInfo = getStoredPasswordHash();
-    if (!hashInfo) return false;
-
-    const valid = await verifyPassword(password, hashInfo.salt, hashInfo.hash);
-    if (username === 'admin' && valid) {
-      const session: SessionData & { username: string } = {
-        isAuthenticated: true,
-        loginTime: Date.now(),
-        username
-      };
-      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      const json = await res.json();
+      setAuthToken(json.token);
       setIsAuthenticated(true);
-      setUsername(username);
-      return true;
-    }
-    return false;
-  }, []);
-
-  const changePassword = useCallback(async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
-    const hashInfo = getStoredPasswordHash();
-    if (!hashInfo) return { success: false, message: '密码数据异常，请刷新页面重试' };
-
-    const currentValid = await verifyPassword(currentPassword, hashInfo.salt, hashInfo.hash);
-    if (!currentValid) return { success: false, message: '当前密码不正确' };
-
-    if (newPassword.length < 6) return { success: false, message: '新密码至少 6 位' };
-
-    try {
-      const newSalt = generateSalt();
-      const newHash = await hashPassword(newPassword, newSalt);
-      localStorage.setItem(PASSWORD_KEY, formatStoredHash(newSalt, newHash));
-      return { success: true, message: '密码修改成功，下次登录请使用新密码' };
+      setUsername(json.username || usernameInput);
+      return { success: true };
     } catch {
-      return { success: false, message: '保存失败，请重试' };
+      return { success: false, message: '登录服务不可用，请稍后再试' };
     }
-  }, []);
+  };
+
+  const changePassword = (): { success: boolean; message: string } => {
+    // 密码由服务器管理（/etc/markdown-publish.env），客户端不再存储密码
+    return { success: false, message: '密码由服务器环境变量管理，请联系管理员修改' };
+  };
 
   const logout = () => {
-    localStorage.removeItem(SESSION_KEY);
+    setAuthToken(null);
     setIsAuthenticated(false);
     setUsername(null);
   };

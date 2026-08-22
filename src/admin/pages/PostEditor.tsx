@@ -5,13 +5,12 @@ import { useDarkMode } from '../../hooks/useDarkMode';
 import { MarkdownEditor } from '../components/MarkdownEditor';
 import { EditorSkeleton } from '../components/EditorSkeleton';
 import { usePosts } from '../../contexts/PostsContext';
-import { useTags } from '../../contexts/TagsContext';
+import { tags, addTag, deleteTag, getTagColor } from '../../data/tags';
 import { categories } from '../../data/categories';
 import type { Post } from '../../types';
 import { loadGitHubConfig, publishToGitHub, uploadImageToGitHub } from '../../services/githubService';
 import { getWeChatAccounts, publishToWeChat, type WeChatAccount } from '../../services/wechatService';
 import { useSeries } from '../../contexts/SeriesContext';
-import { calcReadTime } from '../../utils/readTime';
 
 export const PostEditor: React.FC = () => {
   const { isDark } = useDarkMode();
@@ -20,7 +19,6 @@ export const PostEditor: React.FC = () => {
   const isEditing = id !== undefined && id !== 'new';
   const { posts, addPost, updatePost } = usePosts();
   const { seriesList, updateSeries } = useSeries();
-  const { tags, addTag } = useTags();
 
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
@@ -275,7 +273,7 @@ export const PostEditor: React.FC = () => {
       tags: selectedTags,
       category: selectedCategory,
       status: postStatus,
-      readTime: calcReadTime(content.trim()),
+      readTime: Math.ceil(content.split(/\s+/).length / 200),
       relatedPostIds: relatedPostIds.length > 0 ? relatedPostIds : undefined,
       coverImage: coverImage.trim() || undefined,
       seriesId: selectedSeriesId || undefined,
@@ -348,7 +346,7 @@ export const PostEditor: React.FC = () => {
       tags: selectedTags,
       category: selectedCategory,
       status: postStatus,
-      readTime: calcReadTime(content.trim()),
+      readTime: Math.ceil(content.split(/\s+/).length / 200),
       relatedPostIds: relatedPostIds.length > 0 ? relatedPostIds : undefined,
       coverImage: coverImage.trim() || undefined,
     };
@@ -458,7 +456,7 @@ export const PostEditor: React.FC = () => {
       tags: selectedTags,
       category: selectedCategory,
       status: postStatus,
-      readTime: calcReadTime(content.trim()),
+      readTime: Math.ceil(content.split(/\s+/).length / 200),
       relatedPostIds: relatedPostIds.length > 0 ? relatedPostIds : undefined,
       coverImage: coverImage.trim() || undefined,
     };
@@ -503,7 +501,7 @@ export const PostEditor: React.FC = () => {
       tags: selectedTags,
       date: publishDate,
       category: selectedCategory,
-      readTime: calcReadTime(content.trim()),
+      readTime: Math.ceil(content.split(/\s+/).length / 200),
       coverImage: coverImage.trim() || undefined,
       coverColor: categories.find(c => c.id === selectedCategory)?.color || 'from-lobster-400 to-orange-400'
     };

@@ -6,7 +6,6 @@
 import type { Post } from '../types';
 import type { Comment } from '../types';
 import type { Tag } from '../types';
-import { calcReadTime } from '../utils/readTime';
 
 export interface BackupData {
   version: string;
@@ -137,7 +136,7 @@ export function importPostFromMarkdown(content: string): Partial<Post> | null {
       category: frontmatter.category as string || 'tech',
       status: (frontmatter.status as 'published' | 'draft') || 'draft',
       coverImage: frontmatter.coverImage as string | undefined,
-      readTime: calcReadTime(body.trim()),
+      readTime: Math.ceil(body.split(/\s+/).length / 200),
     };
 
     return post;
