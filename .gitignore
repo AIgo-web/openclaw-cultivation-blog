@@ -23,3 +23,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# 备份文件
+*.bak*
+# 备份文件
+*.bak*
+*.backup*
