@@ -1,0 +1,68 @@
+# Strix AI 渗透测试 — PR 强制安全扫描
+# 前置：仓库 Settings → Secrets and variables → Actions 添加：
+#   STRIX_LLM   = deepseek/deepseek-v4-pro
+#   LLM_API_KEY = DeepSeek API key
+# 行为：
+#   - PR 触发 quick 扫描（自动 diff 范围，只扫改动文件），发现漏洞退出码 2 → 检查失败，阻断合并
+#   - 手动触发 / 每天 02:00 对全仓库跑 standard 扫描（覆盖存量漏洞）
+name: Security Scan (Strix)
+
+on:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  strix-pr-scan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # diff 范围扫描需要完整历史
+
+      - name: Install Strix
+        run: curl -sSL https://strix.ai/install | bash
+
+      - name: Run Strix (PR diff scope)
+        env:
+          STRIX_LLM: ${{ secrets.STRIX_LLM }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: strix -n -t ./ --scan-mode quick --max-budget 10
+
+      - name: Upload scan artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: strix-scan
+          path: strix_runs/
+          if-no-files-found: ignore
+
+  strix-full-scan:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Strix
+        run: curl -sSL https://strix.ai/install | bash
+
+      - name: Run Strix (standard full scan)
+        env:
+          STRIX_LLM: ${{ secrets.STRIX_LLM }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: strix -n -t ./ --scan-mode standard --max-budget 15
+
+      - name: Upload scan artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: strix-full-scan
+          path: strix_runs/
+          if-no-files-found: ignore
